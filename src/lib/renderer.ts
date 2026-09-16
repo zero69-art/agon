@@ -285,6 +285,52 @@ function draw3DWorld(ctx: Ctx, pal: Palette, motif: MotifKind, seed: number, pro
   beam.addColorStop(1, rgba(pal.accent2, 0));
   ctx.fillStyle = beam;
   ctx.fillRect(0, horizon, w, h - horizon);
+
+  // Large perspective forms make the 3D mode visibly different from flat scenes.
+  for (let i = 0; i < 4; i++) {
+    const depth = mod(progress * 0.22 + i * 0.24 + t * 0.025, 1);
+    const z = 0.18 + depth * 0.82;
+    const x = w * (0.18 + i * 0.22) + Math.sin(t * 0.3 + i) * w * 0.04;
+    const y = horizon - h * (0.04 + z * 0.16);
+    const size = Math.min(w, h) * (0.05 + z * 0.12);
+    drawPrism(ctx, x, y, size, pal, 0.18 + z * 0.42, i % 2 === 0 ? 1 : -1);
+  }
+}
+
+function drawPrism(ctx: Ctx, x: number, y: number, size: number, pal: Palette, alpha: number, lean: number): void {
+  const depth = size * 0.45;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = pal.accent;
+  ctx.shadowBlur = size * 0.35;
+  ctx.fillStyle = pal.accent;
+  ctx.beginPath();
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x + size, y - size * 0.55);
+  ctx.lineTo(x + size, y + size * 0.45);
+  ctx.lineTo(x, y + size);
+  ctx.lineTo(x - size, y + size * 0.45);
+  ctx.lineTo(x - size, y - size * 0.55);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = pal.accent2;
+  ctx.beginPath();
+  ctx.moveTo(x, y - size);
+  ctx.lineTo(x + size, y - size * 0.55);
+  ctx.lineTo(x + lean * depth, y - size * 0.2);
+  ctx.lineTo(x, y - size * 0.58);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = rgba(pal.bg[0], 0.58);
+  ctx.beginPath();
+  ctx.moveTo(x + lean * depth, y - size * 0.2);
+  ctx.lineTo(x + size, y - size * 0.55);
+  ctx.lineTo(x + size, y + size * 0.45);
+  ctx.lineTo(x + lean * depth, y + size * 0.1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawIntro(ctx: Ctx, project: Project, local: number, gt: number, w: number, h: number): void {

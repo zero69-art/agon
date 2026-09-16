@@ -11,6 +11,14 @@ export interface Preset {
 
 export const PRESETS: Preset[] = [
   {
+    id: '3d-cinema',
+    label: '3D Cinema',
+    description: 'Perspective worlds, luminous objects, and deep camera movement.',
+    accent: '#ff6a2b',
+    patch: { aspect: '16:9', music: 'cinematic', transition: 'parallax', font: 'display', wpm: 135, quality: 'high', introCard: true, outroCard: true },
+    scenePatch: { dimension: '3d', camera: 'orbit', textAnim: 'beam' },
+  },
+  {
     id: 'cinematic',
     label: 'Cinematic Story',
     description: 'Wide atmosphere, elegant titles, and slow camera depth.',
@@ -45,10 +53,16 @@ export const PRESETS: Preset[] = [
 ];
 
 export function applyPreset(project: Project, preset: Preset): Project {
+  const threeD = preset.id === '3d-cinema';
+  const worldBackgrounds = ['nebula', 'horizon', 'mist', 'grid', 'aurora'] as const;
   return {
     ...project,
     ...preset.patch,
-    scenes: project.scenes.map((scene) => ({ ...scene, ...preset.scenePatch })),
+    scenes: project.scenes.map((scene, index) => ({
+      ...scene,
+      ...preset.scenePatch,
+      ...(threeD ? { bg: worldBackgrounds[index % worldBackgrounds.length], palette: (project.basePalette + index + 1) % 10 } : {}),
+    })),
     updatedAt: Date.now(),
   };
 }
