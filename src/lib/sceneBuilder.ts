@@ -107,6 +107,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
     duration: computeDuration(text, wpm),
     locked: false,
     camera: CAMERAS[index % CAMERAS.length],
+    dimension: '3d',
   };
 }
 
@@ -151,6 +152,7 @@ export function randomizeScene(scene: Scene): Scene {
     palette: Math.floor(rng() * PALETTES.length),
     textAnim: pick(rng, ANIMS),
     camera: pick(rng, CAMERAS),
+    dimension: rng() > 0.25 ? '3d' : '2d',
   };
 }
 

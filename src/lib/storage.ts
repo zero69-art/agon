@@ -20,7 +20,7 @@ function migrate(p: Project): Project {
     narrationRate: p.narrationRate ?? 1,
     narrationPitch: p.narrationPitch ?? 1,
     beatSync: p.beatSync ?? true,
-    scenes: p.scenes.map((scene) => ({ ...scene, camera: scene.camera ?? 'still' })),
+    scenes: p.scenes.map((scene) => ({ ...scene, camera: scene.camera ?? 'still', dimension: scene.dimension ?? '3d' })),
   };
 }
 

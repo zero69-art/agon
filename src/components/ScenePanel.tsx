@@ -94,6 +94,19 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
       >
         <div className="space-y-4">
           <div>
+            <div className="mb-1.5 text-xs text-muted">Scene dimension</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <Chip active={scene.dimension === '2d'} onClick={() => onChange(scene.id, { dimension: '2d' })} className="!text-left">
+                <span className="block">2D Motion</span>
+                <span className={`block text-[10px] ${scene.dimension === '2d' ? 'text-ink/60' : 'text-muted'}`}>Flat graphic layers</span>
+              </Chip>
+              <Chip active={scene.dimension === '3d'} onClick={() => onChange(scene.id, { dimension: '3d' })} className="!text-left">
+                <span className="block">3D Depth</span>
+                <span className={`block text-[10px] ${scene.dimension === '3d' ? 'text-ink/60' : 'text-muted'}`}>Perspective world</span>
+              </Chip>
+            </div>
+          </div>
+          <div>
             <div className="mb-1.5 text-xs text-muted">Palette</div>
             <PaletteSwatches value={scene.palette} onChange={(i) => onChange(scene.id, { palette: i })} size="sm" />
           </div>

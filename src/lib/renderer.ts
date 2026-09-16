@@ -175,6 +175,7 @@ function drawScene(ctx: Ctx, scene: Scene, local: number, gt: number, project: P
   ctx.save();
   applyCamera(ctx, scene.camera, progress, gt, w, h);
   drawBackground(ctx, scene.bg, pal, seed, gt, w, h);
+  if (scene.dimension === '3d') draw3DWorld(ctx, pal, scene.motif, seed, progress, gt, w, h);
   drawMotif(ctx, scene.motif, pal, seed, gt, w, h);
   drawVignette(ctx, pal, w, h);
   if (project.beatSync && project.music !== 'none') {
@@ -225,6 +226,65 @@ function applyCamera(ctx: Ctx, camera: Scene['camera'], progress: number, t: num
   ctx.translate(w / 2 + dx, h / 2 + dy);
   ctx.scale(scale, scale);
   ctx.translate(-w / 2, -h / 2);
+}
+
+function draw3DWorld(ctx: Ctx, pal: Palette, motif: MotifKind, seed: number, progress: number, t: number, w: number, h: number): void {
+  const rng = mulberry32(seed ^ 0x3d3d3d);
+  const horizon = h * (0.53 + Math.sin(t * 0.12) * 0.012);
+  const centerX = w * 0.5 + Math.sin(t * 0.18) * w * 0.035;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.strokeStyle = rgba(pal.accent, 0.2);
+  ctx.lineWidth = Math.max(1, Math.min(w, h) * 0.002);
+  for (let i = 0; i < 12; i++) {
+    const y = horizon + Math.pow(i / 12, 1.8) * h * 0.58;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+  for (let i = -9; i <= 9; i++) {
+    ctx.beginPath();
+    ctx.moveTo(centerX, horizon);
+    ctx.lineTo(w / 2 + i * w * 0.13, h);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  const count = motif === 'space' ? 11 : 8;
+  for (let i = 0; i < count; i++) {
+    const depth = mod(rng() + progress * (0.18 + i * 0.015), 1);
+    const z = 0.18 + depth * 0.82;
+    const x = w * (0.12 + rng() * 0.76) + Math.sin(t * (0.25 + i * 0.03) + i) * w * 0.025;
+    const y = horizon - h * 0.08 + rng() * h * 0.5 * z;
+    const size = Math.min(w, h) * (0.018 + 0.065 * z);
+    const color = i % 2 ? pal.accent : pal.accent2;
+    ctx.save();
+    ctx.globalAlpha = 0.18 + z * 0.62;
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = size * 0.8;
+    if (motif === 'mountains' || motif === 'forest') {
+      ctx.beginPath();
+      ctx.moveTo(x, y - size * 1.8);
+      ctx.lineTo(x - size, y + size);
+      ctx.lineTo(x + size, y + size);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  const beam = ctx.createLinearGradient(0, horizon, 0, h);
+  beam.addColorStop(0, rgba(pal.accent2, 0));
+  beam.addColorStop(0.55, rgba(pal.accent2, 0.12));
+  beam.addColorStop(1, rgba(pal.accent2, 0));
+  ctx.fillStyle = beam;
+  ctx.fillRect(0, horizon, w, h - horizon);
 }
 
 function drawIntro(ctx: Ctx, project: Project, local: number, gt: number, w: number, h: number): void {

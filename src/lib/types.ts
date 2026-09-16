@@ -7,6 +7,7 @@ export type MusicMood = 'none' | 'dreamy' | 'upbeat' | 'epic' | 'mystery' | 'lof
 export type FontStyle = 'display' | 'serif' | 'mono' | 'rounded';
 export type Quality = 'standard' | 'high' | 'ultra';
 export type CameraMotion = 'still' | 'push' | 'drift' | 'orbit' | 'parallax';
+export type SceneDimension = '2d' | '3d';
 
 export interface Scene {
   id: string;
@@ -18,6 +19,7 @@ export interface Scene {
   duration: number;
   locked: boolean;
   camera: CameraMotion;
+  dimension: SceneDimension;
 }
 
 export interface Project {
