@@ -171,6 +171,9 @@ const GROUND_MOTIFS = new Set<MotifKind>(['forest', 'city', 'mountains', 'ocean'
 function drawScene(ctx: Ctx, scene: Scene, local: number, gt: number, project: Project, w: number, h: number): void {
   const pal = PALETTES[scene.palette % PALETTES.length];
   const seed = hashString(scene.id);
+  const progress = clamp01(local / Math.max(0.1, scene.duration));
+  ctx.save();
+  applyCamera(ctx, scene.camera, progress, gt, w, h);
   drawBackground(ctx, scene.bg, pal, seed, gt, w, h);
   drawMotif(ctx, scene.motif, pal, seed, gt, w, h);
   drawVignette(ctx, pal, w, h);
@@ -187,8 +190,41 @@ function drawScene(ctx: Ctx, scene: Scene, local: number, gt: number, project: P
   }
   const portrait = h > w;
   const anchor = GROUND_MOTIFS.has(scene.motif) ? (portrait ? 0.32 : 0.37) : scene.motif === 'space' ? (portrait ? 0.4 : 0.44) : 0.5;
-  drawText(ctx, scene.text, scene.textAnim, pal, project.font, local, scene.duration, project.transition === 'cut', w, h, anchor);
+  const dialogue = parseDialogue(scene.text);
+  drawText(ctx, dialogue.text, scene.textAnim, pal, project.font, local, scene.duration, project.transition === 'cut', w, h, anchor);
+  if (dialogue.speaker) drawSpeaker(ctx, dialogue.speaker, pal, local, w, h);
   drawProgress(ctx, pal, local / scene.duration, w, h);
+  ctx.restore();
+}
+
+function parseDialogue(text: string): { speaker: string; text: string } {
+  const match = text.match(/^\s*([^:]{1,32}):\s*(.+)$/s);
+  return match ? { speaker: match[1].trim(), text: match[2].trim() } : { speaker: '', text };
+}
+
+function drawSpeaker(ctx: Ctx, speaker: string, pal: Palette, local: number, w: number, h: number): void {
+  const reveal = easeOut(clamp01(local / 0.45));
+  ctx.save();
+  ctx.globalAlpha = reveal * 0.95;
+  ctx.fillStyle = rgba(pal.accent, 0.92);
+  ctx.font = `700 ${Math.round(Math.min(w, h) * 0.026)}px "DM Mono", monospace`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  const x = w * 0.12;
+  const y = h * 0.72;
+  ctx.fillText(speaker.toUpperCase().slice(0, 24), x, y);
+  ctx.fillStyle = rgba(pal.text, 0.65);
+  ctx.fillRect(x, y + Math.min(w, h) * 0.035, Math.min(w, h) * 0.18 * reveal, 2);
+  ctx.restore();
+}
+
+function applyCamera(ctx: Ctx, camera: Scene['camera'], progress: number, t: number, w: number, h: number): void {
+  const scale = camera === 'push' ? 1 + progress * 0.1 : camera === 'parallax' ? 1 + progress * 0.045 : camera === 'orbit' ? 1.025 : 1;
+  const dx = camera === 'drift' || camera === 'parallax' ? Math.sin(t * 0.28) * w * 0.018 : camera === 'orbit' ? Math.sin(t * 0.32) * w * 0.025 : 0;
+  const dy = camera === 'drift' || camera === 'parallax' ? Math.cos(t * 0.22) * h * 0.012 : camera === 'orbit' ? Math.cos(t * 0.32) * h * 0.012 : 0;
+  ctx.translate(w / 2 + dx, h / 2 + dy);
+  ctx.scale(scale, scale);
+  ctx.translate(-w / 2, -h / 2);
 }
 
 function drawIntro(ctx: Ctx, project: Project, local: number, gt: number, w: number, h: number): void {

@@ -1,6 +1,6 @@
 import { PALETTES } from './palettes';
 import { hashString, mulberry32, pick, uid } from './rng';
-import type { BackgroundKind, MotifKind, Project, Scene, TextAnim } from './types';
+import type { BackgroundKind, CameraMotion, MotifKind, Project, Scene, TextAnim } from './types';
 
 const MAX_WORDS = 22;
 const HARD_MAX = 28;
@@ -84,6 +84,7 @@ const RULES: Rule[] = [
 ];
 
 const ANIMS: TextAnim[] = ['rise', 'pop', 'slide', 'fade', 'zoom', 'typewriter', 'float', 'beam'];
+const CAMERAS: CameraMotion[] = ['still', 'push', 'drift', 'orbit', 'parallax'];
 const BG_CYCLE: BackgroundKind[] = ['aurora', 'bokeh', 'geo', 'starfield', 'waves', 'grid', 'sunset', 'rain', 'particles', 'matrix', 'nebula', 'horizon', 'mist'];
 
 export function computeDuration(text: string, wpm: number): number {
@@ -105,6 +106,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
     textAnim,
     duration: computeDuration(text, wpm),
     locked: false,
+    camera: CAMERAS[index % CAMERAS.length],
   };
 }
 
@@ -148,6 +150,7 @@ export function randomizeScene(scene: Scene): Scene {
     motif: pick(rng, motifs),
     palette: Math.floor(rng() * PALETTES.length),
     textAnim: pick(rng, ANIMS),
+    camera: pick(rng, CAMERAS),
   };
 }
 

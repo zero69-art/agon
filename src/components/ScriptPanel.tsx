@@ -27,6 +27,9 @@ export function ScriptPanel({ project, dirty, onScript, onBuild, onShuffle, onLo
           Every sentence or line becomes an animated scene. Words like <span className="text-cream/80">ocean</span>, <span className="text-cream/80">forest</span>,{' '}
           <span className="text-cream/80">city</span>, <span className="text-cream/80">stars</span> or <span className="text-cream/80">love</span> pick the visuals automatically.
         </p>
+        <p className="mt-2 rounded-lg border border-tangerine/20 bg-tangerine/5 px-2.5 py-2 text-[12px] leading-snug text-tangerine/90">
+          Dialogue tip: write <span className="font-mono">MAYA: We should go.</span> to show a speaker label and read only the spoken line aloud.
+        </p>
       </div>
       <div className="relative flex min-h-[220px] flex-1 flex-col">
         <textarea

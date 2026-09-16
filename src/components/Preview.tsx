@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Maximize2, Mic, MicOff, Pause, Play, Repeat, RotateCcw } from 'lucide-react';
 import { renderFrame } from '../lib/renderer';
+import { music } from '../lib/music';
 import { getTimeline, itemAt, totalDuration } from '../lib/timeline';
 import { canvasSize, type Project } from '../lib/types';
 import { formatTime } from '../lib/rng';
@@ -46,6 +47,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
         dirtyRef.current = true;
         if (!player.playing) {
           if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+          music.setDucked(false);
           lastSpoken.current = null;
         }
       }),
@@ -75,7 +77,8 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
       if (id === lastSpoken.current) return;
       lastSpoken.current = id;
       speechSynthesis.cancel();
-      const text = hit?.item.scene?.text ?? (hit?.item.kind === 'intro' ? p.title : hit?.item.kind === 'outro' ? 'The end.' : '');
+      const rawText = hit?.item.scene?.text ?? (hit?.item.kind === 'intro' ? p.title : hit?.item.kind === 'outro' ? 'The end.' : '');
+      const text = rawText.replace(/^\s*[^:]{1,32}:\s*/, '');
       if (!text) return;
       const u = new SpeechSynthesisUtterance(text);
       u.rate = p.narrationRate || Math.min(1.4, Math.max(0.85, p.wpm / 160));
@@ -84,6 +87,9 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
         const v = speechSynthesis.getVoices().find((x) => x.name === p.narrationVoice);
         if (v) u.voice = v;
       }
+      music.setDucked(true);
+      u.onend = () => music.setDucked(false);
+      u.onerror = () => music.setDucked(false);
       speechSynthesis.speak(u);
     };
 

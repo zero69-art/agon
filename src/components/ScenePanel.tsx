@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Lock, Plus, Shuffle, Trash2, Unlock } from 'lucide-react';
-import { BACKGROUNDS, MOTIFS, TEXT_ANIMS, type Project, type Scene } from '../lib/types';
+import { BACKGROUNDS, CAMERA_MOTIONS, MOTIFS, TEXT_ANIMS, type Project, type Scene } from '../lib/types';
 import { computeDuration } from '../lib/sceneBuilder';
 import { Btn, Chip, IconBtn, PaletteSwatches, Section, Slider } from './ui';
 
@@ -124,6 +124,17 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
               {TEXT_ANIMS.map((a) => (
                 <Chip key={a.id} active={scene.textAnim === a.id} onClick={() => onChange(scene.id, { textAnim: a.id })}>
                   {a.label}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="mb-1.5 text-xs text-muted">3D camera motion</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {CAMERA_MOTIONS.map((camera) => (
+                <Chip key={camera.id} active={scene.camera === camera.id} onClick={() => onChange(scene.id, { camera: camera.id })} title={camera.hint} className="!text-left">
+                  <span className="block">{camera.label}</span>
+                  <span className={`block text-[10px] ${scene.camera === camera.id ? 'text-ink/60' : 'text-muted'}`}>{camera.hint}</span>
                 </Chip>
               ))}
             </div>

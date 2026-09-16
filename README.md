@@ -40,6 +40,10 @@ This app is designed for free deployment on:
 - Renders in real time with local procedural animation and music
 - Keeps everything offline-first and zero-cost
 
+## Dialogue and voice
+
+Write dialogue lines with a speaker prefix, for example `MAYA: We should go.`. Agon renders the speaker as a cinematic lower-third and uses the browser's selected speech voice during preview while lowering the music automatically. Browser speech audio cannot be captured by web apps, so final voiceover audio must be recorded or added as a local audio track in a later creator workflow.
+
 ## Creator export kit
 
 Use **Export kit** in the app header to download a local creator bundle containing:

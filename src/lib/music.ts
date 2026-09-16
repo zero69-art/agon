@@ -228,6 +228,7 @@ export class MusicEngine {
   private step = 0;
   private mood: Exclude<MusicMood, 'none'> = 'dreamy';
   private volume = 0.55;
+  private ducked = false;
   private seedState = 12345;
   playing = false;
 
@@ -293,6 +294,11 @@ export class MusicEngine {
   setVolume(v: number): void {
     this.volume = v;
     if (this.ctx) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+  }
+
+  setDucked(ducked: boolean): void {
+    this.ducked = ducked;
+    if (this.ctx) this.master.gain.setTargetAtTime(this.ducked ? this.volume * 0.28 : this.volume, this.ctx.currentTime, 0.12);
   }
 
   start(mood: MusicMood): void {

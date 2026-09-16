@@ -6,6 +6,7 @@ export type Aspect = '16:9' | '9:16' | '1:1';
 export type MusicMood = 'none' | 'dreamy' | 'upbeat' | 'epic' | 'mystery' | 'lofi' | 'ambient' | 'cinematic' | 'retro';
 export type FontStyle = 'display' | 'serif' | 'mono' | 'rounded';
 export type Quality = 'standard' | 'high' | 'ultra';
+export type CameraMotion = 'still' | 'push' | 'drift' | 'orbit' | 'parallax';
 
 export interface Scene {
   id: string;
@@ -16,6 +17,7 @@ export interface Scene {
   textAnim: TextAnim;
   duration: number;
   locked: boolean;
+  camera: CameraMotion;
 }
 
 export interface Project {
@@ -91,6 +93,14 @@ export const TEXT_ANIMS: { id: TextAnim; label: string }[] = [
   { id: 'blur', label: 'Blur focus' },
   { id: 'float', label: 'Float' },
   { id: 'beam', label: 'Beam' },
+];
+
+export const CAMERA_MOTIONS: { id: CameraMotion; label: string; hint: string }[] = [
+  { id: 'still', label: 'Still', hint: 'Clean locked shot' },
+  { id: 'push', label: 'Push in', hint: 'Slow cinematic zoom' },
+  { id: 'drift', label: 'Drift', hint: 'Gentle floating movement' },
+  { id: 'orbit', label: 'Orbit', hint: 'Subtle circular camera move' },
+  { id: 'parallax', label: 'Parallax', hint: 'Layered depth movement' },
 ];
 
 export const TRANSITIONS: { id: Transition; label: string }[] = [

@@ -82,8 +82,8 @@ export function MusicPanel({ project, onChange, previewing, onPreview }: Props) 
 
       <Section title="Narration">
         <p className="text-[12px] text-muted">
-          Reads each scene aloud as it plays, using your browser's built-in voices. This is a live preview feature only — it isn't recorded into
-          exported video, since browsers don't expose speech audio for capture.
+          Reads dialogue and narration aloud during preview with your browser's built-in voices. Music automatically ducks while a voice speaks.
+          Browser speech cannot be captured into an exported video, so use a recorded/uploaded voice track for final voiceover.
         </p>
         <label className="block text-[12px] text-muted">
           Voice
