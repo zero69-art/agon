@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0c0b10;
+  --color-surface: #15141b;
+  --color-surface-2: #1c1b24;
+  --color-surface-3: #25242f;
+  --color-line: #2a2934;
+  --color-line-2: #3d3c4a;
+  --color-cream: #f4efe4;
+  --color-muted: #9b96a8;
+  --color-dim: #5f5b6c;
+  --color-tangerine: #ff6a2b;
+  --color-tangerine-2: #ff8a55;
+  --color-mint: #b6f5c8;
+  --color-lilac: #c9b8ff;
+  --font-display: "Bricolage Grotesque", "Instrument Sans", sans-serif;
+  --font-body: "Instrument Sans", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-ink);
+  background-image:
+    radial-gradient(1200px 600px at 8% -10%, rgba(255, 106, 43, 0.14), transparent 60%),
+    radial-gradient(900px 500px at 100% 110%, rgba(201, 184, 255, 0.1), transparent 60%);
+  background-attachment: fixed;
+  color: var(--color-cream);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.panel-scroll,
+.story-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-2) transparent;
+}
+.panel-scroll::-webkit-scrollbar,
+.story-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.panel-scroll::-webkit-scrollbar-thumb,
+.story-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-line-2);
+  border-radius: 8px;
+}
+
+input[type='range'] {
+  height: 4px;
+  cursor: pointer;
+}
+
+textarea,
+input {
+  font-family: inherit;
+}
