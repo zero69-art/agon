@@ -48,6 +48,7 @@ export default function App() {
   const [musicPreview, setMusicPreview] = useState(false);
   const [saved, setSaved] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -230,10 +231,12 @@ export default function App() {
   const startExport = () => {
     const canvas = canvasRef.current;
     if (!canvas || !supported || !project.scenes.length || exporting) return;
+    setExportError(null);
     setMusicPreview(false);
     player.pause();
     player.setLoop(false);
     player.seek(0);
+    if (project.music !== 'none') music.start(project.music);
     const stream = canvas.captureStream(30);
     if (project.music !== 'none') {
       const audio = music.audioStream;
@@ -254,11 +257,20 @@ export default function App() {
     rec.ondataavailable = (e) => {
       if (e.data.size) chunks.push(e.data);
     };
+    rec.onerror = () => {
+      cancelRef.current = true;
+      player.pause();
+      setExportError('The browser stopped recording. Try Standard or High quality, then export again in Chrome or Edge.');
+      if (rec.state !== 'inactive') rec.stop();
+    };
     rec.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       recorderRef.current = null;
       setExporting(false);
-      if (!cancelRef.current) void finishExport(chunks, rec.mimeType || mime);
+      if (!cancelRef.current) {
+        if (!chunks.length) setExportError('No video frames were captured. Keep the preview tab visible and try again.');
+        else void finishExport(chunks, rec.mimeType || mime);
+      }
     };
     recorderRef.current = rec;
     setExporting(true);
@@ -281,7 +293,14 @@ export default function App() {
     const rec = recorderRef.current;
     if (rec && rec.state !== 'inactive') {
       window.setTimeout(() => {
-        if (rec.state !== 'inactive') rec.stop();
+        if (rec.state !== 'inactive') {
+          try {
+            rec.requestData();
+          } catch {
+            /* some browsers do not support requestData during shutdown */
+          }
+          rec.stop();
+        }
       }, 400);
     }
   }, []);
@@ -336,6 +355,7 @@ export default function App() {
         supported={supported}
         mime={mime}
         latest={clips[0] ?? null}
+        error={exportError}
         onChange={update}
         onStart={startExport}
         onCancel={cancelExport}

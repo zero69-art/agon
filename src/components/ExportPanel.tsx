@@ -12,12 +12,13 @@ interface Props {
   supported: boolean;
   mime: string;
   latest: ExportedClip | null;
+  error: string | null;
   onChange: (patch: Partial<Project>) => void;
   onStart: () => void;
   onCancel: () => void;
 }
 
-export function ExportPanel({ project, player, exporting, supported, mime, latest, onChange, onStart, onCancel }: Props) {
+export function ExportPanel({ project, player, exporting, supported, mime, latest, error, onChange, onStart, onCancel }: Props) {
   usePlayer(player);
   const total = totalDuration(project);
   const { w, h } = canvasSize(project.aspect, project.quality);
@@ -86,6 +87,7 @@ export function ExportPanel({ project, player, exporting, supported, mime, lates
           as many as you like.
         </p>
         {!supported && <p className="text-[12px] text-red-300">This browser can’t record canvas video. Try Chrome, Edge or Firefox.</p>}
+        {error && <p className="rounded-lg border border-red-300/30 bg-red-300/10 p-2 text-[12px] leading-snug text-red-200">{error}</p>}
       </Section>
 
       {latest && (
