@@ -1,6 +1,7 @@
 import { RectangleHorizontal, RectangleVertical, Square } from 'lucide-react';
 import { ASPECTS, FONTS, TRANSITIONS, type Project } from '../lib/types';
 import { FONT_FAMILY } from '../lib/renderer';
+import { PRESETS } from '../lib/presets';
 import { Chip, PaletteSwatches, Section, Slider, Toggle } from './ui';
 
 interface Props {
@@ -8,14 +9,34 @@ interface Props {
   onChange: (patch: Partial<Project>) => void;
   onWpm: (wpm: number) => void;
   onPaletteAll: (i: number) => void;
+  onPreset: (id: string) => void;
 }
 
 const ASPECT_ICON = { '16:9': RectangleHorizontal, '9:16': RectangleVertical, '1:1': Square };
 
-export function StylePanel({ project, onChange, onWpm, onPaletteAll }: Props) {
+export function StylePanel({ project, onChange, onWpm, onPaletteAll, onPreset }: Props) {
   const allSame = project.scenes.length > 0 && project.scenes.every((s) => s.palette === project.scenes[0].palette) ? project.scenes[0].palette : null;
   return (
     <div className="space-y-6 p-4">
+      <Section title="Start with a look">
+        <div className="grid gap-2">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => onPreset(preset.id)}
+              className="group flex items-start gap-3 rounded-xl border border-line bg-surface-2 p-3 text-left transition-all hover:-translate-y-0.5 hover:border-line-2 hover:bg-surface-3"
+            >
+              <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_14px_currentColor]" style={{ backgroundColor: preset.accent, color: preset.accent }} />
+              <span className="min-w-0">
+                <span className="block text-[13px] font-semibold text-cream">{preset.label}</span>
+                <span className="mt-0.5 block text-[11px] leading-snug text-muted">{preset.description}</span>
+              </span>
+              <span className="ml-auto text-muted opacity-0 transition-opacity group-hover:opacity-100">→</span>
+            </button>
+          ))}
+        </div>
+      </Section>
       <Section title="Format">
         <div className="grid grid-cols-3 gap-2">
           {ASPECTS.map((a) => {

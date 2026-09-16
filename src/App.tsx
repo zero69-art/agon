@@ -18,6 +18,7 @@ import { blankProject, buildScenes, createProject, makeScene, randomizeScene, re
 import { loadCurrent, loadLibrary, removeFromLibrary, saveCurrent, saveToLibrary } from './lib/storage';
 import { totalDuration } from './lib/timeline';
 import { downloadProjectExport, readProjectExport } from './lib/projectExport';
+import { applyPreset, PRESETS } from './lib/presets';
 import { slugify, uid } from './lib/rng';
 import type { ExportedClip, Project, Scene } from './lib/types';
 
@@ -133,6 +134,11 @@ export default function App() {
   const setWpm = (wpm: number) => update({ wpm, scenes: retimeScenes(project.scenes, wpm) });
 
   const paletteAll = (i: number) => update({ basePalette: i, scenes: project.scenes.map((s) => ({ ...s, palette: i })) });
+
+  const preset = (id: string) => {
+    const selected = PRESETS.find((item) => item.id === id);
+    if (selected) update(applyPreset(project, selected));
+  };
 
   const deleteScene = (id: string) => {
     const idx = project.scenes.findIndex((s) => s.id === id);
@@ -342,7 +348,7 @@ export default function App() {
 
   const rightPanel = (tab: RightTab) =>
     tab === 'look' ? (
-      <StylePanel project={project} onChange={update} onWpm={setWpm} onPaletteAll={paletteAll} />
+      <StylePanel project={project} onChange={update} onWpm={setWpm} onPaletteAll={paletteAll} onPreset={preset} />
     ) : tab === 'scene' ? (
       <ScenePanel project={project} scene={selectedScene} onChange={updateScene} onDelete={deleteScene} onMove={moveScene} onAddAfter={addAfter} onRandomize={randomizeOne} />
     ) : tab === 'sound' ? (

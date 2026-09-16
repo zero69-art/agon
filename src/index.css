@@ -36,6 +36,28 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+button,
+label,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+label:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-tangerine-2);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(255, 106, 43, 0.32);
+  color: var(--color-cream);
+}
+
 .panel-scroll,
 .story-scroll {
   scrollbar-width: thin;
