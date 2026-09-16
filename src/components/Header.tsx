@@ -1,4 +1,4 @@
-import { Check, FilePlus2, Infinity as InfinityIcon, Save } from 'lucide-react';
+import { Check, Download, FilePlus2, Infinity as InfinityIcon, Save, Upload } from 'lucide-react';
 import { Btn } from './ui';
 
 interface Props {
@@ -6,6 +6,8 @@ interface Props {
   onTitle: (t: string) => void;
   onSave: () => void;
   onNew: () => void;
+  onExport: () => void;
+  onImport: (file: File) => void;
   saved: boolean;
   compact?: boolean;
 }
@@ -23,7 +25,8 @@ export function Logo({ size = 30 }: { size?: number }) {
   );
 }
 
-export function Header({ title, onTitle, onSave, onNew, saved, compact }: Props) {
+export function Header({ title, onTitle, onSave, onNew, onExport, onImport, saved, compact }: Props) {
+  const importId = 'agon-project-import';
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-ink/80 px-3 backdrop-blur sm:px-4">
       <div className="flex items-center gap-2.5">
@@ -51,6 +54,15 @@ export function Header({ title, onTitle, onSave, onNew, saved, compact }: Props)
       <Btn variant={saved ? 'mint' : 'outline'} onClick={onSave} title="Save to library" className="!px-2.5">
         {saved ? <Check size={16} /> : <Save size={16} />}
         <span className="hidden sm:inline">{saved ? 'Saved' : 'Save'}</span>
+      </Btn>
+      <input id={importId} type="file" accept="application/json,.json" className="hidden" onChange={(e) => e.target.files?.[0] && onImport(e.target.files[0])} />
+      <label htmlFor={importId} className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-line-2 px-3.5 py-2 text-sm font-medium text-cream transition-all hover:bg-surface-2">
+        <Upload size={16} />
+        <span className="hidden sm:inline">Import</span>
+      </label>
+      <Btn variant="primary" onClick={onExport} title="Download project files" className="!px-2.5">
+        <Download size={16} />
+        <span className="hidden sm:inline">Export kit</span>
       </Btn>
     </header>
   );

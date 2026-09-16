@@ -17,6 +17,7 @@ import { music } from './lib/music';
 import { blankProject, buildScenes, createProject, makeScene, randomizeScene, retimeScenes } from './lib/sceneBuilder';
 import { loadCurrent, loadLibrary, removeFromLibrary, saveCurrent, saveToLibrary } from './lib/storage';
 import { totalDuration } from './lib/timeline';
+import { downloadProjectExport, readProjectExport } from './lib/projectExport';
 import { slugify, uid } from './lib/rng';
 import type { ExportedClip, Project, Scene } from './lib/types';
 
@@ -191,6 +192,14 @@ export default function App() {
 
   const deleteFromLibrary = (id: string) => setLibrary(removeFromLibrary(id));
 
+  const importProject = async (file: File) => {
+    try {
+      loadProject(await readProjectExport(file));
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Could not import this project.');
+    }
+  };
+
   /* ------------------------------------------------------------ export */
 
   const finishExport = useCallback(
@@ -350,7 +359,7 @@ export default function App() {
   if (isDesktop) {
     return (
       <div className="flex h-screen flex-col overflow-hidden text-cream">
-        <Header title={project.title} onTitle={(t) => update({ title: t })} onSave={save} onNew={newProject} saved={saved} />
+        <Header title={project.title} onTitle={(t) => update({ title: t })} onSave={save} onNew={newProject} onExport={() => downloadProjectExport(project)} onImport={importProject} saved={saved} />
         <main className="grid min-h-0 flex-1 grid-cols-[330px_minmax(0,1fr)_320px] xl:grid-cols-[370px_minmax(0,1fr)_350px]">
           <aside className={`flex min-h-0 flex-col border-r border-line bg-surface/60 ${lockClass}`}>
             <div className="p-3 pb-0">
@@ -382,7 +391,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col text-cream">
-      <Header title={project.title} onTitle={(t) => update({ title: t })} onSave={save} onNew={newProject} saved={saved} compact />
+      <Header title={project.title} onTitle={(t) => update({ title: t })} onSave={save} onNew={newProject} onExport={() => downloadProjectExport(project)} onImport={importProject} saved={saved} compact />
       <div className="flex flex-col gap-3 p-3">
         <Preview project={project} player={player} onCanvas={onCanvas} onEnded={onEnded} exporting={exporting} />
         <Timeline project={project} player={player} selectedId={selectedId} onSelect={selectScene} disabled={exporting} />

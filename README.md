@@ -39,3 +39,14 @@ This app is designed for free deployment on:
 - Prefers MP4 when available for smoother compatibility
 - Renders in real time with local procedural animation and music
 - Keeps everything offline-first and zero-cost
+
+## Creator export kit
+
+Use **Export kit** in the app header to download a local creator bundle containing:
+
+- the editable Agon project JSON
+- timed `.srt` and `.vtt` captions
+- a Blender Python bridge
+- an FFmpeg PowerShell render helper
+
+The normal browser export needs no extra software. The Blender and FFmpeg files are optional local workflows for creators who want advanced rendering or encoding.
