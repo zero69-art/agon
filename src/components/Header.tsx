@@ -32,7 +32,7 @@ export function Header({ title, onTitle, onSave, onNew, onExport, onImport, save
       <div className="flex items-center gap-2.5">
         <Logo />
         <div className="leading-none">
-          <div className="font-display text-[19px] font-bold tracking-tight text-cream">Fablereel</div>
+          <div className="font-display text-[19px] font-bold tracking-tight text-cream">Agon</div>
           {!compact && <div className="font-mono text-[9px] uppercase tracking-[0.25em] text-muted">text → motion</div>}
         </div>
       </div>

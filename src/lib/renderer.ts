@@ -233,7 +233,7 @@ function drawIntro(ctx: Ctx, project: Project, local: number, gt: number, w: num
   drawBackground(ctx, first?.bg ?? 'aurora', pal, hashString(project.id + 'intro'), gt, w, h);
   drawVignette(ctx, pal, w, h);
   drawText(ctx, project.title || 'Untitled', 'zoom', pal, project.font, local, CARD_DURATION, false, w, h, 0.47);
-  drawKicker(ctx, 'A FABLEREEL STORY', pal, local, w, h);
+  drawKicker(ctx, 'AN AGON STORY', pal, local, w, h);
 }
 
 function drawOutro(ctx: Ctx, project: Project, local: number, gt: number, w: number, h: number): void {
