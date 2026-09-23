@@ -363,7 +363,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
   function rebuild(project, currentScene) {
     const motif = currentScene?.motif || 'none';
     const paletteIndex = currentScene?.palette || project?.basePalette || 0;
-    const signature = motif + ':' + paletteIndex + ':' + (currentScene?.id || '') + ':' + sceneCount;
+    const signature = motif + ':' + paletteIndex + ':' + (currentScene?.id || '') + ':' + (currentScene?.text || '') + ':' + sceneCount;
     if (signature === currentSignature) return;
     currentSignature = signature;
 
