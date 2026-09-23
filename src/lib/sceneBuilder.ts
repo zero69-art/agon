@@ -151,6 +151,8 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
   const cameraCue = directive(text, 'CAMERA').toLowerCase().trim();
   const camera = (CAMERAS.includes(cameraCue as CameraMotion) ? cameraCue : CAMERAS[index % CAMERAS.length]) as CameraMotion;
   const cleanText = cleanDirectorCues(text);
+  const speakerMatch = cleanText.match(/^\\s*([^:]{1,32}):\\s*/);
+  const speakingCharacter = speakerMatch?.[1]?.trim() || undefined;
   return {
     id: uid(),
     text: cleanText,
@@ -165,6 +167,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
     action,
     characters: characters.length ? characters : undefined,
     emotion: emotion || undefined,
+    speakingCharacter,
   };
 }
 
