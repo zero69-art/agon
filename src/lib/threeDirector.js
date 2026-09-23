@@ -1,27 +1,4 @@
-const THREE_READY_TIMEOUT = 15000;
-
-function getThreePromise() {
-  const win = window;
-  if (win.__AGON_THREE_PROMISE__) return win.__AGON_THREE_PROMISE__;
-  if (win.__AGON_THREE__) return Promise.resolve(win.__AGON_THREE__);
-
-  return new Promise((resolve, reject) => {
-    const timer = window.setTimeout(() => {
-      window.removeEventListener('agon-three-ready', onReady);
-      reject(new Error('Three.js did not load.'));
-    }, THREE_READY_TIMEOUT);
-
-    function onReady() {
-      const three = window.__AGON_THREE__;
-      if (!three) return;
-      window.clearTimeout(timer);
-      window.removeEventListener('agon-three-ready', onReady);
-      resolve(three);
-    }
-
-    window.addEventListener('agon-three-ready', onReady);
-  });
-}
+import * as THREE from 'three';
 
 const paletteSets = [
   ['#101726', '#64d8ff', '#ff8a65', '#ece7d5'],
@@ -340,8 +317,6 @@ function addEnvironment(THREE, scene, motif, paletteIndex) {
 }
 
 export async function createThreeDirector(host, sceneCount = 1) {
-  const THREE = await getThreePromise();
-
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     preserveDrawingBuffer: true,
