@@ -3,6 +3,8 @@ import { ArrowRight, Boxes, Clapperboard, Dices, Download, Film, RefreshCw, Scan
 import { GENRES, LENGTHS, TONES, generateStory, type Genre, type Length, type StoryResult, type Tone } from '../lib/storyGen';
 import { formatTime } from '../lib/rng';
 import { Btn, Chip, Section } from './ui';
+import { OmniRoutePanel } from './OmniRoutePanel';
+import { generateMovieWithOmniRoute, type OmniRouteSettings } from '../lib/omniRoute';
 
 interface Props {
   onUse: (title: string, text: string) => void;
@@ -69,6 +71,15 @@ function makeDirectorManifest(result: StoryResult, genre: Genre, tone: Tone, len
         hero: index % 3 === 0 ? 'curious' : index % 3 === 1 ? 'surprised' : 'determined',
         support: index % 2 === 0 ? 'alert' : 'amused',
       },
+      director: {
+        action: /\b(run|running|chase|jump|leap|wave|fight|attack|dance|sit|kneel|point|reach|look|watch|talk|speak|walk|approach)\b/i.exec(text)?.[1] ?? 'idle',
+        emotion: /\b(angry|sad|happy|excited|surprised|afraid|curious|determined|amused|alert)\b/i.exec(text)?.[1] ?? 'neutral',
+        characters: [/\b(fox|bear|owl|rabbit|bunny|robot|android)\b/gi].flatMap(() => {
+          const found = Array.from(text.matchAll(/\b(fox|bear|owl|rabbit|bunny|robot|android)\b/gi)).map((m) => m[1].toLowerCase());
+          return [...new Set(found)].slice(0, 2);
+        }),
+        speakingCharacter: text.match(/^\\s*([^:]{1,32}):/)?.[1]?.trim() ?? null,
+      },
       dialogue: text.match(/[A-Z][A-Z0-9 _-]{1,20}:\s*[^.!?]+[.!?]?/g) ?? [],
     })),
   };
@@ -94,6 +105,8 @@ export function StoryForge({ onUse }: Props) {
   const [result, setResult] = useState<StoryResult | null>(null);
   const [spinning, setSpinning] = useState(false);
   const [showManifest, setShowManifest] = useState(false);
+  const [omniBusy, setOmniBusy] = useState(false);
+  const [omniError, setOmniError] = useState<string | null>(null);
 
   const forge = () => {
     setSpinning(true);
@@ -113,6 +126,46 @@ export function StoryForge({ onUse }: Props) {
   const downloadManifest = () => {
     if (!manifest || !result) return;
     downloadText(`${result.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'agon-film'}-3d-manifest.json`, escapeJson(manifest));
+  };
+
+  const generateWithOmniRoute = async (settings: OmniRouteSettings) => {
+    setOmniBusy(true);
+    setOmniError(null);
+
+    const lengthHint = LENGTHS.find((item) => item.id === length)?.hint ?? '';
+    const directorPrompt = [
+      'Create an original character-driven animated 3D film.',
+      'Genre: ' + (genre === 'random' ? 'adventure' : genre),
+      'Tone: ' + tone,
+      'Target length: ' + length + ' ' + lengthHint,
+      hero.trim() ? 'Hero concept: ' + hero.trim() : 'Hero concept: invent a memorable original protagonist.',
+      spark.trim() ? 'Story spark: ' + spark.trim() : 'Story spark: invent a strong visual story hook.',
+      'Make the screenplay visually actionable for a 3D director.',
+      'Give characters distinct personalities, physical acting, emotional reactions, natural dialogue and clear scene changes.',
+      'Use SPEAKER: dialogue formatting for spoken lines.',
+      'Avoid copying any existing movie, character or franchise.',
+    ].join('\n');
+
+    try {
+      const generated = await generateMovieWithOmniRoute(settings, directorPrompt);
+      const generatedText = generated.text.trim();
+      const generatedWords = generatedText ? generatedText.split(/\s+/).length : 0;
+      const paragraphs = generatedText.split(/\n+/).map((item) => item.trim()).filter(Boolean);
+
+      setResult({
+        title: generated.title,
+        text: generatedText,
+        genre: genre === 'random' ? 'adventure' : genre,
+        seed: Date.now(),
+        paragraphs: paragraphs.length,
+        words: generatedWords,
+      });
+      setShowManifest(false);
+    } catch (error) {
+      setOmniError(error instanceof Error ? error.message : 'OmniRoute generation failed.');
+    } finally {
+      setOmniBusy(false);
+    }
   };
 
   return (
@@ -172,6 +225,13 @@ export function StoryForge({ onUse }: Props) {
         </Btn>
         {result && <Btn variant="ghost" onClick={() => setResult(generateStory({ genre: result.genre, tone, length, hero, spark }))} title="Same genre, new roll"><Dices size={16} /></Btn>}
       </div>
+      <OmniRoutePanel onGenerate={generateWithOmniRoute} busy={omniBusy} />
+
+      {omniError && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-200">
+          {omniError}
+        </div>
+      )}
 
       {result && (
         <div className="space-y-3">
