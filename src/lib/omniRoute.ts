@@ -16,7 +16,7 @@ const STORAGE_KEY = 'agon.omniroute.settings';
 export const DEFAULT_OMNIROUTE_SETTINGS: OmniRouteSettings = {
   baseUrl: 'http://localhost:20128',
   apiKey: '',
-  model: 'auto',
+  model: 'auto/quality',
   enabled: false,
 };
 
@@ -124,7 +124,7 @@ function fallbackTitle(text: string): string {
 }
 
 export async function generateMovieWithOmniRoute(settings: OmniRouteSettings, prompt: string): Promise<OmniRouteResponse> {
-  const model = settings.model.trim() && settings.model.trim() !== 'auto' ? settings.model.trim() : 'auto';
+  const model = settings.model.trim() && settings.model.trim() !== 'auto/quality' ? settings.model.trim() : 'auto/quality';
   const system = [
     'You are Agon\'s AI Movie Director.',
     'Return ORIGINAL animated-film material only. Do not imitate or reproduce copyrighted characters, voices, scripts, or exact visual identities from existing films.',
