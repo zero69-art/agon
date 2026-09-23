@@ -72,6 +72,29 @@ function inferAction(text) {
   return 'idle';
 }
 
+
+function speciesFromCharacter(value, fallback) {
+  const t = String(value || '').toLowerCase();
+  if (/\bfox|vixen\b/.test(t)) return 'fox';
+  if (/\bbear\b/.test(t)) return 'bear';
+  if (/\bowl\b/.test(t)) return 'owl';
+  if (/\brabbit|bunny\b/.test(t)) return 'rabbit';
+  if (/\brobot|android|machine\b/.test(t)) return 'robot';
+  return fallback;
+}
+
+function inferEmotion(text, explicit) {
+  const value = String(explicit || '').trim().toLowerCase();
+  if (value) return value;
+  const t = text.toLowerCase();
+  if (/\b(angry|furious|rage|shouts|attacks)\b/.test(t)) return 'angry';
+  if (/\b(sad|cries|tearful|grief|lonely)\b/.test(t)) return 'sad';
+  if (/\b(happy|laugh|laughs|joy|smiles|excited)\b/.test(t)) return 'happy';
+  if (/\b(surprised|shock|gasps|stunned)\b/.test(t)) return 'surprised';
+  if (/\b(afraid|fear|scared|terrified|nervous)\b/.test(t)) return 'afraid';
+  return 'neutral';
+}
+
 function parseDialogue(text) {
   const m = text.match(/^\s*([^:]{1,32}):\s*(.+)$/s);
   return m ? { speaker: m[1].trim(), line: m[2].trim() } : { speaker: '', line: '' };
@@ -129,6 +152,14 @@ function makeActor(THREE, species, index, paletteIndex) {
   pupilL.position.set(-0.18, 0.04, 0.505);
   pupilR.position.set(0.18, 0.04, 0.505);
   head.add(pupilL, pupilR);
+
+  const browL = mesh(THREE, new THREE.BoxGeometry(0.13, 0.025, 0.025), dark);
+  const browR = browL.clone();
+  browL.position.set(-0.18, 0.16, 0.465);
+  browR.position.set(0.18, 0.16, 0.465);
+  browL.rotation.z = 0.08;
+  browR.rotation.z = -0.08;
+  head.add(browL, browR);
 
   const mouth = mesh(THREE, new THREE.BoxGeometry(0.18, 0.035, 0.025), dark);
   mouth.position.set(0, -0.19, 0.46);
@@ -218,6 +249,8 @@ function makeActor(THREE, species, index, paletteIndex) {
     eyeR,
     pupilL,
     pupilR,
+    browL,
+    browR,
     armL,
     armR,
     legL,
@@ -348,16 +381,33 @@ export async function createThreeDirector(host, sceneCount = 1) {
   let currentSignature = '';
   let lastW = 0;
   let lastH = 0;
+  let outputSize = null;
 
   function resize() {
-    const w = Math.max(320, host.clientWidth);
-    const h = Math.max(180, host.clientHeight);
+    const w = Math.max(320, outputSize?.w ?? host.clientWidth);
+    const h = Math.max(180, outputSize?.h ?? host.clientHeight);
     if (w === lastW && h === lastH) return;
     lastW = w;
     lastH = h;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+  }
+
+  function setOutputSize(size) {
+    if (!size) {
+      outputSize = null;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+      lastW = 0;
+      lastH = 0;
+      resize();
+      return;
+    }
+    outputSize = { w: Math.max(320, Math.round(size.w)), h: Math.max(180, Math.round(size.h)) };
+    renderer.setPixelRatio(1);
+    lastW = 0;
+    lastH = 0;
+    resize();
   }
 
   function rebuild(project, currentScene) {
@@ -378,8 +428,9 @@ export async function createThreeDirector(host, sceneCount = 1) {
     scene3d.add(environment);
 
     const baseText = currentScene?.text || project?.script || '';
-    const s0 = inferSpecies(baseText, motif === 'space' ? 'robot' : 'fox');
-    const s1 = inferSpecies(baseText, s0 === 'fox' ? 'owl' : 'human');
+    const requested = Array.isArray(currentScene?.characters) ? currentScene.characters.filter(Boolean).slice(0, 2) : [];
+    const s0 = requested[0] ? speciesFromCharacter(requested[0], motif === 'space' ? 'robot' : 'fox') : inferSpecies(baseText, motif === 'space' ? 'robot' : 'fox');
+    const s1 = requested[1] ? speciesFromCharacter(requested[1], s0 === 'fox' ? 'owl' : 'human') : inferSpecies(baseText, s0 === 'fox' ? 'owl' : 'human');
     actors = [
       makeActor(THREE, s0, 0, paletteIndex),
       makeActor(THREE, s1, 1, paletteIndex),
@@ -404,9 +455,9 @@ export async function createThreeDirector(host, sceneCount = 1) {
     scene3d.add(backdrop);
   }
 
-  function animateActor(actor, actorIndex, action, local, globalTime, speakingIndex) {
+  function animateActor(actor, actorIndex, action, local, globalTime, speakingIndex, emotion) {
     const u = actor.userData;
-    const speed = action === 'run' ? 8.5 : action === 'walk' ? 5.0 : action === 'dance' ? 4.5 : 2.4;
+    const speed = action === 'run' ? 8.5 : action === 'walk' ? 5.0 : action === 'dance' ? 4.5 : action === 'fight' ? 7.5 : 2.4;
     const phase = globalTime * speed + u.phase;
     const speaking = speakingIndex === actorIndex;
     const stride = action === 'run' ? 0.65 : action === 'walk' ? 0.4 : 0.16;
@@ -431,6 +482,27 @@ export async function createThreeDirector(host, sceneCount = 1) {
     } else if (action === 'fight') {
       u.armL.rotation.x = -1.25 + Math.sin(globalTime * 8) * 0.2;
       u.armR.rotation.x = -1.05 - Math.sin(globalTime * 9) * 0.2;
+      actor.rotation.y += Math.sin(globalTime * 6 + u.phase) * 0.006;
+    } else if (action === 'point') {
+      u.armR.rotation.z = -0.45;
+      u.armR.rotation.x = -0.85;
+    } else if (action === 'reach') {
+      u.armR.rotation.z = -0.25;
+      u.armR.rotation.x = -0.7 + Math.sin(globalTime * 3 + u.phase) * 0.08;
+      actor.position.z = -0.05 + Math.sin(globalTime * 1.6 + u.phase) * 0.12;
+    } else if (action === 'kneel') {
+      u.legL.rotation.x = -0.8;
+      u.legR.rotation.x = 0.65;
+      actor.position.y = 0.0;
+    } else if (action === 'sit') {
+      u.legL.rotation.x = -1.05;
+      u.legR.rotation.x = -1.05;
+      actor.position.y = -0.1;
+    } else if (action === 'look') {
+      u.head.rotation.y += Math.sin(globalTime * 1.2 + u.phase) * 0.25;
+    } else if (action === 'talk') {
+      u.armL.rotation.z = Math.sin(globalTime * 3.5 + u.phase) * 0.12;
+      u.armR.rotation.z = -Math.sin(globalTime * 3.5 + u.phase) * 0.12;
     } else if (action === 'dance') {
       u.armL.rotation.z = 0.6 + Math.sin(phase) * 0.35;
       u.armR.rotation.z = -0.6 - Math.sin(phase) * 0.35;
@@ -454,8 +526,11 @@ export async function createThreeDirector(host, sceneCount = 1) {
     u.pupilL.scale.y = blinkScale;
     u.pupilR.scale.y = blinkScale;
 
-    const mouthOpen = speaking ? 0.035 + Math.abs(Math.sin(globalTime * 11.5 + u.phase)) * 0.11 : 0.035;
+    const mouthOpen = speaking ? 0.035 + Math.abs(Math.sin(globalTime * 11.5 + u.phase)) * 0.11 : emotion === 'happy' ? 0.055 : 0.035;
     u.mouth.scale.y = 1 + mouthOpen * 4;
+    const browTilt = emotion === 'angry' ? 0.28 : emotion === 'sad' ? -0.18 : emotion === 'surprised' ? -0.42 : 0.08;
+    u.browL.rotation.z = browTilt;
+    u.browR.rotation.z = -browTilt;
 
     if (u.tailPivot) {
       u.tailPivot.rotation.y = Math.sin(globalTime * 4.5 + u.phase) * 0.38;
@@ -468,16 +543,23 @@ export async function createThreeDirector(host, sceneCount = 1) {
     resize();
     rebuild(project, currentScene);
 
-    const action = inferAction(currentScene?.text || '');
+    const action = currentScene?.action || inferAction(currentScene?.text || '');
     const dialogue = parseDialogue(currentScene?.text || '');
-    const speakingIndex = dialogue.speaker ? (dialogue.speaker.toLowerCase().includes('2') ? 1 : 0) : -1;
+    const emotion = inferEmotion(currentScene?.text || '', currentScene?.emotion);
+    const speakingCharacter = String(currentScene?.speakingCharacter || dialogue.speaker || '').toLowerCase();
+    const characterLabels = Array.isArray(currentScene?.characters) ? currentScene.characters : [];
+    const speakingIndex = speakingCharacter
+      ? characterLabels.findIndex((label) => String(label).toLowerCase() === speakingCharacter)
+      : dialogue.speaker
+        ? (dialogue.speaker.toLowerCase().includes('2') ? 1 : 0)
+        : -1;
 
     actors.forEach((actor, index) => {
       const startX = index === 0 ? -1.1 : 1.1;
       if (action === 'run') actor.position.x = startX + Math.sin(globalTime * 0.8 + index) * 0.65;
       else if (action === 'walk') actor.position.x = startX + Math.sin(globalTime * 0.5 + index) * 0.35;
       else actor.position.x = startX;
-      animateActor(actor, index, action, local, globalTime, speakingIndex);
+      animateActor(actor, index, action, local, globalTime, speakingIndex, emotion);
     });
 
     const progress = currentScene?.duration ? clamp(local / currentScene.duration, 0, 1) : 0;
@@ -514,6 +596,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
   }
 
   function dispose() {
+    window.removeEventListener('resize', resize);
     renderer.dispose();
     while (scene3d.children.length) scene3d.remove(scene3d.children[0]);
   }
@@ -524,6 +607,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
     canvas: renderer.domElement,
     render,
     dispose,
+    setOutputSize,
     ready: true,
   };
 }
