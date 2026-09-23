@@ -39,24 +39,29 @@ function inferSpecies(text, fallback) {
 
 function inferAction(text) {
   const t = text.toLowerCase();
-  if (/\brun|runs|running|chase|chases|sprint/.test(t)) return 'run';
-  if (/\bjump|jumps|jumped|leap|leaps/.test(t)) return 'jump';
-  if (/\bwave|waves|waved|hello/.test(t)) return 'wave';
-  if (/\bfight|fights|attack|attacks|punch|punches|battle/.test(t)) return 'fight';
-  if (/\bdance|dances|danced/.test(t)) return 'dance';
-  if (/\bsit|sits|sat/.test(t)) return 'sit';
-  if (/\bwalk|walks|walking|approach|approaches/.test(t)) return 'walk';
+  if (/\b(?:run|runs|running|chase|chases|sprint|sprints)\b/.test(t)) return 'run';
+  if (/\b(?:jump|jumps|jumped|leap|leaps|leapt)\b/.test(t)) return 'jump';
+  if (/\b(?:wave|waves|waved|hello|beckon|beckons)\b/.test(t)) return 'wave';
+  if (/\b(?:fight|fights|attack|attacks|punch|punches|battle|battles)\b/.test(t)) return 'fight';
+  if (/\b(?:dance|dances|danced|twirl|twirls)\b/.test(t)) return 'dance';
+  if (/\b(?:sit|sits|sat)\b/.test(t)) return 'sit';
+  if (/\b(?:kneel|kneels|kneeling)\b/.test(t)) return 'kneel';
+  if (/\b(?:point|points|pointing|gesture|gestures)\b/.test(t)) return 'point';
+  if (/\b(?:reach|reaches|reaching|grab|grabs)\b/.test(t)) return 'reach';
+  if (/\b(?:look|looks|stare|stares|watch|watches|gaze|gazes)\b/.test(t)) return 'look';
+  if (/\b(?:talk|talks|speaks|says|asks|replies|whispers|shouts|calls)\b/.test(t)) return 'talk';
+  if (/\b(?:walk|walks|walking|approach|approaches|steps)\b/.test(t)) return 'walk';
   return 'idle';
 }
 
 
 function speciesFromCharacter(value, fallback) {
   const t = String(value || '').toLowerCase();
-  if (/\bfox|vixen\b/.test(t)) return 'fox';
+  if (/\b(?:fox|vixen)\b/.test(t)) return 'fox';
   if (/\bbear\b/.test(t)) return 'bear';
   if (/\bowl\b/.test(t)) return 'owl';
-  if (/\brabbit|bunny\b/.test(t)) return 'rabbit';
-  if (/\brobot|android|machine\b/.test(t)) return 'robot';
+  if (/\b(?:rabbit|bunny)\b/.test(t)) return 'rabbit';
+  if (/\b(?:robot|android|machine)\b/.test(t)) return 'robot';
   return fallback;
 }
 
@@ -316,6 +321,15 @@ function addEnvironment(THREE, scene, motif, paletteIndex) {
   return group;
 }
 
+function disposeObject3D(root) {
+  root.traverse((node) => {
+    if (!node.isMesh) return;
+    node.geometry?.dispose?.();
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    materials.forEach((material) => material?.dispose?.());
+  });
+}
+
 export async function createThreeDirector(host, sceneCount = 1) {
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
@@ -388,15 +402,19 @@ export async function createThreeDirector(host, sceneCount = 1) {
   function rebuild(project, currentScene) {
     const motif = currentScene?.motif || 'none';
     const paletteIndex = currentScene?.palette || project?.basePalette || 0;
-    const signature = motif + ':' + paletteIndex + ':' + (currentScene?.id || '') + ':' + (currentScene?.text || '') + ':' + sceneCount;
+    const signature = motif + ':' + paletteIndex + ':' + (currentScene?.id || '') + ':' + (currentScene?.text || '') + ':' + (currentScene?.action || '') + ':' + (currentScene?.emotion || '') + ':' + (currentScene?.speakingCharacter || '') + ':' + JSON.stringify(currentScene?.characters || []) + ':' + sceneCount;
     if (signature === currentSignature) return;
     currentSignature = signature;
 
-    while (environment) {
+    if (environment) {
       scene3d.remove(environment);
+      disposeObject3D(environment);
       environment = null;
     }
-    actors.forEach((actor) => scene3d.remove(actor));
+    actors.forEach((actor) => {
+      scene3d.remove(actor);
+      disposeObject3D(actor);
+    });
     actors = [];
 
     environment = addEnvironment(THREE, scene3d, motif, paletteIndex);
@@ -511,7 +529,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
       u.tailPivot.rotation.y = Math.sin(globalTime * 4.5 + u.phase) * 0.38;
     }
 
-    actor.rotation.y += (actorIndex === 0 ? 0.0008 : -0.0008);
+    actor.rotation.y = (actorIndex === 0 ? 0.12 : -0.15) + Math.sin(globalTime * 0.32 + u.phase) * 0.025;
   }
 
   function render(project, currentScene, local, globalTime) {
