@@ -231,7 +231,7 @@ export function StoryForge({ onUse }: Props) {
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs leading-relaxed text-red-200">
           {omniError}
         </div>
-      )
+      )}
 
       {result && (
         <div className="space-y-3">
