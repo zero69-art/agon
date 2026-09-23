@@ -54,26 +54,41 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
     setThreeError(null);
     onCanvas(null);
 
-    void import('../lib/threeDirector.js')
-      .then(({ createThreeDirector }) => createThreeDirector(host, project.scenes.length))
-      .then((director: ThreeDirector) => {
-        if (!alive) {
-          director.dispose();
-          return;
-        }
-        directorRef.current = director;
-        onCanvas(director.canvas);
-        setThreeReady(true);
-      })
-      .catch((error) => {
-        if (!alive) return;
-        setThreeError(error instanceof Error ? error.message : '3D runtime failed to load.');
+    const startDirector = () => {
+      const factory = (window as Window & {
+        __AGON_CREATE_THREE_DIRECTOR__?: (host: HTMLDivElement, sceneCount: number) => Promise<ThreeDirector>;
+      }).__AGON_CREATE_THREE_DIRECTOR__;
+      if (!factory) {
+        setThreeError('3D runtime is not ready.');
         const fallback = fallbackCanvasRef.current;
         if (fallback) onCanvas(fallback);
-      });
+        return;
+      }
+      void factory(host, project.scenes.length)
+        .then((director) => {
+          if (!alive) {
+            director.dispose();
+            return;
+          }
+          directorRef.current = director;
+          onCanvas(director.canvas);
+          setThreeReady(true);
+        })
+        .catch((error) => {
+          if (!alive) return;
+          setThreeError(error instanceof Error ? error.message : '3D runtime failed to load.');
+          const fallback = fallbackCanvasRef.current;
+          if (fallback) onCanvas(fallback);
+        });
+    };
+
+    const ready = (window as Window & { __AGON_CREATE_THREE_DIRECTOR__?: unknown }).__AGON_CREATE_THREE_DIRECTOR__;
+    if (ready) startDirector();
+    else window.addEventListener('agon-three-director-ready', startDirector);
 
     return () => {
       alive = false;
+      window.removeEventListener('agon-three-director-ready', startDirector);
       const director = directorRef.current;
       directorRef.current = null;
       director?.dispose();
