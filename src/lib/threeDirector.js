@@ -614,3 +614,9 @@ export async function createThreeDirector(host, sceneCount = 1) {
     ready: true,
   };
 }
+
+
+if (typeof window !== 'undefined') {
+  window.__AGON_CREATE_THREE_DIRECTOR__ = createThreeDirector;
+  window.dispatchEvent(new Event('agon-three-director-ready'));
+}
