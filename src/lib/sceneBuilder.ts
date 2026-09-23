@@ -1,6 +1,6 @@
 import { PALETTES } from './palettes';
 import { hashString, mulberry32, pick, uid } from './rng';
-import type { BackgroundKind, CameraMotion, MotifKind, Project, Scene, TextAnim } from './types';
+import type { ActionKind, BackgroundKind, CameraMotion, MotifKind, Project, Scene, TextAnim } from './types';
 
 const MAX_WORDS = 22;
 const HARD_MAX = 28;
@@ -87,6 +87,54 @@ const ANIMS: TextAnim[] = ['rise', 'pop', 'slide', 'fade', 'zoom', 'typewriter',
 const CAMERAS: CameraMotion[] = ['still', 'push', 'drift', 'orbit', 'parallax'];
 const BG_CYCLE: BackgroundKind[] = ['aurora', 'bokeh', 'geo', 'starfield', 'waves', 'grid', 'sunset', 'rain', 'particles', 'matrix', 'nebula', 'horizon', 'mist'];
 
+const ACTIONS: ActionKind[] = ['idle', 'walk', 'run', 'jump', 'wave', 'fight', 'dance', 'sit', 'point', 'look', 'kneel', 'reach', 'talk'];
+
+function directive(text: string, key: string): string {
+  const match = text.match(new RegExp('\\\\[' + key + '\\s*:\\s*([^\\\\]]+)\\\\]', 'i'));
+  return match?.[1]?.trim() ?? '';
+}
+
+function cleanDirectorCues(text: string): string {
+  return text
+    .replace(/\\\\[(?:ACTION|CHARACTERS?|EMOTION|CAMERA)\\\\s*:\\s*[^\\\\]]+\\\\]/gi, '')
+    .replace(/^\\\\s*\\\\|\\\\s*/gm, '')
+    .replace(/[ \\t]{2,}/g, ' ')
+    .replace(/\\\\n{3,}/g, '\\n\\n')
+    .trim();
+}
+
+function normalizeAction(value: string): ActionKind | undefined {
+  const v = value.trim().toLowerCase().replace(/[^a-z]/g, '') as ActionKind;
+  return ACTIONS.includes(v) ? v : undefined;
+}
+
+function inferAction(text: string): ActionKind {
+  const t = text.toLowerCase();
+  if (/\\\\b(run|runs|running|chase|chases|sprint|sprints)\\\\b/.test(t)) return 'run';
+  if (/\\\\b(jump|jumps|jumped|leap|leaps|leapt)\\\\b/.test(t)) return 'jump';
+  if (/\\\\b(wave|waves|waved|hello|beckon|beckons)\\\\b/.test(t)) return 'wave';
+  if (/\\\\b(fight|fights|attack|attacks|punch|punches|battle|battles)\\\\b/.test(t)) return 'fight';
+  if (/\\\\b(dance|dances|danced|twirl|twirls)\\\\b/.test(t)) return 'dance';
+  if (/\\\\b(sit|sits|sat|sit down)\\\\b/.test(t)) return 'sit';
+  if (/\\\\b(kneel|kneels|kneeling)\\\\b/.test(t)) return 'kneel';
+  if (/\\\\b(point|points|pointing|gesture|gestures)\\\\b/.test(t)) return 'point';
+  if (/\\\\b(reach|reaches|reaching|grab|grabs|grabs for)\\\\b/.test(t)) return 'reach';
+  if (/\\\\b(look|looks|stare|stares|watch|watches|gaze|gazes)\\\\b/.test(t)) return 'look';
+  if (/\\\\b(talk|talks|speaks|says|asks|replies|whispers|shouts|calls)\\\\b/.test(t)) return 'talk';
+  if (/\\\\b(walk|walks|walking|approach|approaches|steps)\\\\b/.test(t)) return 'walk';
+  return 'idle';
+}
+
+function inferCharacters(text: string): string[] {
+  const explicit = directive(text, 'CHARACTERS');
+  if (explicit) return explicit.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 2);
+  const hits: string[] = [];
+  for (const [key, label] of [['fox', 'fox'], ['vixen', 'fox'], ['bear', 'bear'], ['owl', 'owl'], ['rabbit', 'rabbit'], ['bunny', 'rabbit'], ['robot', 'robot'], ['android', 'robot']] as const) {
+    if (new RegExp('\\\\b' + key + '\\\\b', 'i').test(text) && !hits.includes(label)) hits.push(label);
+  }
+  return hits.slice(0, 2);
+}
+
 export function computeDuration(text: string, wpm: number): number {
   const words = wordCount(text);
   const secs = (words / Math.max(60, wpm)) * 60 + 1.4;
@@ -97,17 +145,26 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
   const rng = mulberry32(hashString(text) + index * 977);
   const rule = RULES.find((r) => r.keys.test(text));
   const textAnim = ANIMS[index % ANIMS.length];
+  const action = normalizeAction(directive(text, 'ACTION')) ?? inferAction(text);
+  const characters = inferCharacters(text);
+  const emotion = directive(text, 'EMOTION');
+  const cameraCue = directive(text, 'CAMERA').toLowerCase().trim();
+  const camera = (CAMERAS.includes(cameraCue as CameraMotion) ? cameraCue : CAMERAS[index % CAMERAS.length]) as CameraMotion;
+  const cleanText = cleanDirectorCues(text);
   return {
     id: uid(),
-    text,
+    text: cleanText,
     bg: rule ? rule.bg : BG_CYCLE[(index + Math.floor(rng() * 2)) % BG_CYCLE.length],
     motif: rule ? rule.motif : 'none',
     palette: rule ? rule.palette : basePalette,
     textAnim,
-    duration: computeDuration(text, wpm),
+    duration: computeDuration(cleanText, wpm),
     locked: false,
-    camera: CAMERAS[index % CAMERAS.length],
+    camera,
     dimension: '3d',
+    action,
+    characters: characters.length ? characters : undefined,
+    emotion: emotion || undefined,
   };
 }
 
