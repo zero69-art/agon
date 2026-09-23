@@ -114,6 +114,8 @@ export class SimpleWebmMuxer {
     const cluster = ebml([0x1f, 0x43, 0xb6, 0x75], u8(...clusterParts));
     const segment = ebml([0x18, 0x53, 0x80, 0x67], u8(info, tracks, cluster));
     const file = u8(header, segment);
-    return new Blob([file], { type: 'video/webm' });
+    const ab = new ArrayBuffer(file.byteLength);
+    new Uint8Array(ab).set(file);
+    return new Blob([ab], { type: 'video/webm' });
   }
 }
