@@ -54,3 +54,16 @@ Use **Export kit** in the app header to download a local creator bundle containi
 - an FFmpeg PowerShell render helper
 
 The normal browser export needs no extra software. The Blender and FFmpeg files are optional local workflows for creators who want advanced rendering or encoding.
+
+
+## OmniRoute integration
+
+Agon can use a local or self-hosted OmniRoute instance as its AI director while keeping the built-in offline story generator as a fallback.
+
+- Default OmniRoute URL: `http://localhost:20128`
+- Health check: `GET /api/health`
+- Model discovery: `/api/v1/models` or `/v1/models`
+- Movie generation: `POST /api/v1/chat/completions`
+- Default routing model: `auto/quality`
+
+The connection settings live in the Story Forge panel and are stored locally in the browser. No OmniRoute or provider key is bundled into the application.
