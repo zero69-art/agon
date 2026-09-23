@@ -52,28 +52,28 @@ function words(text) {
 
 function inferSpecies(text, fallback) {
   const t = text.toLowerCase();
-  if (/\\bfox\\b|\\bvixen\\b/.test(t)) return 'fox';
-  if (/\\bbear\\b/.test(t)) return 'bear';
-  if (/\\bowl\\b/.test(t)) return 'owl';
-  if (/\\brobot\\b|\\bandroid\\b|\\bmachine\\b/.test(t)) return 'robot';
-  if (/\\brabbit\\b|\\bbunny\\b/.test(t)) return 'rabbit';
+  if (/\bfox\b|\bvixen\b/.test(t)) return 'fox';
+  if (/\bbear\b/.test(t)) return 'bear';
+  if (/\bowl\b/.test(t)) return 'owl';
+  if (/\brobot\b|\bandroid\b|\bmachine\b/.test(t)) return 'robot';
+  if (/\brabbit\b|\bbunny\b/.test(t)) return 'rabbit';
   return fallback;
 }
 
 function inferAction(text) {
   const t = text.toLowerCase();
-  if (/\\brun|runs|running|chase|chases|sprint/.test(t)) return 'run';
-  if (/\\bjump|jumps|jumped|leap|leaps/.test(t)) return 'jump';
-  if (/\\bwave|waves|waved|hello/.test(t)) return 'wave';
-  if (/\\bfight|fights|attack|attacks|punch|punches|battle/.test(t)) return 'fight';
-  if (/\\bdance|dances|danced/.test(t)) return 'dance';
-  if (/\\bsit|sits|sat/.test(t)) return 'sit';
-  if (/\\bwalk|walks|walking|approach|approaches/.test(t)) return 'walk';
+  if (/\brun|runs|running|chase|chases|sprint/.test(t)) return 'run';
+  if (/\bjump|jumps|jumped|leap|leaps/.test(t)) return 'jump';
+  if (/\bwave|waves|waved|hello/.test(t)) return 'wave';
+  if (/\bfight|fights|attack|attacks|punch|punches|battle/.test(t)) return 'fight';
+  if (/\bdance|dances|danced/.test(t)) return 'dance';
+  if (/\bsit|sits|sat/.test(t)) return 'sit';
+  if (/\bwalk|walks|walking|approach|approaches/.test(t)) return 'walk';
   return 'idle';
 }
 
 function parseDialogue(text) {
-  const m = text.match(/^\\s*([^:]{1,32}):\\s*(.+)$/s);
+  const m = text.match(/^\s*([^:]{1,32}):\s*(.+)$/s);
   return m ? { speaker: m[1].trim(), line: m[2].trim() } : { speaker: '', line: '' };
 }
 
