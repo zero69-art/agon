@@ -55,6 +55,7 @@ export default function App() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const cancelRef = useRef(false);
   const projectRef = useRef(project);
+  const exportingRef = useRef(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const mime = useMemo(pickMime, []);
   const supported = typeof HTMLCanvasElement !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype && mime !== '';
@@ -62,6 +63,10 @@ export default function App() {
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
+
+  useEffect(() => {
+    exportingRef.current = exporting;
+  }, [exporting]);
 
   // autosave
   useEffect(() => {
@@ -81,6 +86,18 @@ export default function App() {
   useEffect(() => {
     music.setVolume(project.musicVolume);
   }, [project.musicVolume]);
+
+  // Pause export playback when tab is hidden (browsers throttle rAF / canvas)
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden && exportingRef.current && player.playing) {
+        player.pause();
+        setExportError((prev) => prev ?? 'Export paused because this tab was hidden. Keep Agon visible, then press Render again if needed.');
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [player]);
 
   // keyboard: space toggles play when not typing
   useEffect(() => {
@@ -207,36 +224,52 @@ export default function App() {
     }
   };
 
+  const goExportVideo = () => {
+    setRightTab('export');
+    if (!isDesktop) setMobileTab('export');
+  };
+
   /* ------------------------------------------------------------ export */
 
-  const finishExport = useCallback(
-    async (chunks: Blob[], type: string) => {
-      const p = projectRef.current;
-      const total = totalDuration(p);
-      let blob = new Blob(chunks, { type: type || 'video/webm' });
-      if (blob.type.includes('webm')) {
-        try {
-          blob = await fixWebmDuration(blob, Math.round(total * 1000), { logger: false });
-        } catch {
-          /* keep original */
-        }
+  const finishExport = useCallback(async (chunks: Blob[], type: string) => {
+    const p = projectRef.current;
+    const total = totalDuration(p);
+    let blob = new Blob(chunks, { type: type || 'video/webm' });
+    if (blob.type.includes('webm')) {
+      try {
+        blob = await fixWebmDuration(blob, Math.round(total * 1000), { logger: false });
+      } catch {
+        /* keep original */
       }
-      const url = URL.createObjectURL(blob);
-      const clip: ExportedClip = { id: uid(), title: p.title || 'Untitled', url, size: blob.size, duration: total, mime: blob.type, createdAt: Date.now() };
-      setClips((c) => [clip, ...c]);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${slugify(clip.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    },
-    [],
-  );
+    }
+    const url = URL.createObjectURL(blob);
+    const clip: ExportedClip = {
+      id: uid(),
+      title: p.title || 'Untitled',
+      url,
+      size: blob.size,
+      duration: total,
+      mime: blob.type,
+      createdAt: Date.now(),
+    };
+    setClips((c) => [clip, ...c]);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${slugify(clip.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, []);
 
   const startExport = () => {
     const canvas = canvasRef.current;
     if (!canvas || !supported || !project.scenes.length || exporting) return;
+    if (document.hidden) {
+      setExportError('Bring this tab to the front, then start render. Hidden tabs are throttled and produce broken video.');
+      setRightTab('export');
+      if (!isDesktop) setMobileTab('export');
+      return;
+    }
     setExportError(null);
     setMusicPreview(false);
     player.pause();
@@ -281,9 +314,12 @@ export default function App() {
     recorderRef.current = rec;
     setExporting(true);
     setRightTab('export');
+    if (!isDesktop) setMobileTab('export');
     rec.start(500);
     // give the recorder a beat to attach before motion starts
-    window.setTimeout(() => player.play(), 120);
+    window.setTimeout(() => {
+      if (!cancelRef.current && !document.hidden) player.play();
+    }, 120);
   };
 
   const cancelExport = () => {
@@ -371,21 +407,33 @@ export default function App() {
   const lockClass = exporting ? 'pointer-events-none opacity-50' : '';
 
   const leftTabs = [
-    { id: 'script' as const, label: 'Script', icon: <BookOpen size={14} /> },
-    { id: 'forge' as const, label: 'Story Forge', icon: <Wand2 size={14} /> },
-    { id: 'library' as const, label: 'Library', icon: <Library size={14} /> },
+    { id: 'script' as const, label: 'Script', icon: <BookOpen size={14} aria-hidden /> },
+    { id: 'forge' as const, label: 'Story Forge', icon: <Wand2 size={14} aria-hidden /> },
+    { id: 'library' as const, label: 'Library', icon: <Library size={14} aria-hidden /> },
   ];
   const rightTabs = [
-    { id: 'look' as const, label: 'Look', icon: <Palette size={14} /> },
-    { id: 'scene' as const, label: 'Scene', icon: <SlidersHorizontal size={14} /> },
-    { id: 'sound' as const, label: 'Sound', icon: <Music2 size={14} /> },
-    { id: 'export' as const, label: 'Export', icon: <Film size={14} /> },
+    { id: 'look' as const, label: 'Look', icon: <Palette size={14} aria-hidden /> },
+    { id: 'scene' as const, label: 'Scene', icon: <SlidersHorizontal size={14} aria-hidden /> },
+    { id: 'sound' as const, label: 'Sound', icon: <Music2 size={14} aria-hidden /> },
+    { id: 'export' as const, label: 'Export', icon: <Film size={14} aria-hidden /> },
   ];
+
+  const headerProps = {
+    title: project.title,
+    onTitle: (t: string) => update({ title: t }),
+    onSave: save,
+    onNew: newProject,
+    onExportKit: () => downloadProjectExport(project),
+    onExportVideo: goExportVideo,
+    onImport: importProject,
+    saved,
+    exporting,
+  };
 
   if (isDesktop) {
     return (
       <div className="flex h-screen flex-col overflow-hidden text-cream">
-        <Header title={project.title} onTitle={(t) => update({ title: t })} onSave={save} onNew={newProject} onExport={() => downloadProjectExport(project)} onImport={importProject} saved={saved} />
+        <Header {...headerProps} />
         <main className="grid min-h-0 flex-1 grid-cols-[330px_minmax(0,1fr)_320px] xl:grid-cols-[370px_minmax(0,1fr)_350px]">
           <aside className={`flex min-h-0 flex-col border-r border-line bg-surface/60 ${lockClass}`}>
             <div className="p-3 pb-0">
@@ -417,19 +465,21 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen flex-col text-cream">
-      <Header title={project.title} onTitle={(t) => update({ title: t })} onSave={save} onNew={newProject} onExport={() => downloadProjectExport(project)} onImport={importProject} saved={saved} compact />
+      <Header {...headerProps} compact />
       <div className="flex flex-col gap-3 p-3">
         <Preview project={project} player={player} onCanvas={onCanvas} onEnded={onEnded} exporting={exporting} />
         <Timeline project={project} player={player} selectedId={selectedId} onSelect={selectScene} disabled={exporting} />
       </div>
       <div className={`sticky top-0 z-10 border-y border-line bg-ink/90 px-3 py-2 backdrop-blur ${lockClass}`}>
-        <div className="flex gap-1 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Panels">
           {mobileTabs.map((t) => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              aria-selected={mobileTab === t.id}
               onClick={() => setMobileTab(t.id)}
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] ${
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-tangerine ${
                 mobileTab === t.id ? 'bg-cream text-ink font-semibold' : 'bg-surface-2 text-muted'
               }`}
             >

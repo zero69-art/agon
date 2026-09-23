@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Download, Film, Loader2, X } from 'lucide-react';
 import { canvasSize, type ExportedClip, type Project } from '../lib/types';
 import { totalDuration } from '../lib/timeline';
@@ -24,6 +25,13 @@ export function ExportPanel({ project, player, exporting, supported, mime, lates
   const { w, h } = canvasSize(project.aspect, project.quality);
   const progress = exporting && total > 0 ? Math.min(1, player.time / total) : 0;
   const ext = mime.includes('mp4') ? 'MP4' : 'WebM';
+  const [tabHidden, setTabHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
+
+  useEffect(() => {
+    const onVis = () => setTabHidden(document.hidden);
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, []);
 
   return (
     <div className="space-y-6 p-4">
@@ -58,36 +66,41 @@ export function ExportPanel({ project, player, exporting, supported, mime, lates
 
       <Section title="Render">
         {!exporting ? (
-          <Btn variant="primary" className="w-full !py-3" onClick={onStart} disabled={!supported || !project.scenes.length}>
-            <Film size={16} /> Render video · {formatTime(total)}
+          <Btn variant="primary" className="w-full !py-3" onClick={onStart} disabled={!supported || !project.scenes.length} aria-label={`Render video ${formatTime(total)}`}>
+            <Film size={16} aria-hidden /> Render video · {formatTime(total)}
           </Btn>
         ) : (
           <div className="space-y-2 rounded-xl border border-tangerine/40 bg-tangerine/5 p-3">
             <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-tangerine">
               <span className="inline-flex items-center gap-1.5">
-                <Loader2 size={12} className="animate-spin" /> rendering
+                <Loader2 size={12} className="animate-spin" aria-hidden /> rendering
               </span>
               <span>{Math.round(progress * 100)}%</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-line">
+            <div className="h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
               <div className="h-full rounded-full bg-tangerine transition-[width]" style={{ width: `${progress * 100}%` }} />
             </div>
             <div className="flex items-center justify-between">
               <span className="font-mono text-[11px] text-muted">
                 {formatTime(player.time)} / {formatTime(total)}
               </span>
-              <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 text-[12px] text-muted hover:text-cream">
-                <X size={12} /> Cancel
+              <button type="button" onClick={onCancel} className="inline-flex items-center gap-1 text-[12px] text-muted hover:text-cream focus-visible:outline focus-visible:outline-2 focus-visible:outline-tangerine" aria-label="Cancel render">
+                <X size={12} aria-hidden /> Cancel
               </button>
             </div>
+            {tabHidden && (
+              <p className="rounded-lg border border-amber-400/40 bg-amber-400/10 p-2 text-[12px] leading-snug text-amber-100" role="status">
+                This tab is in the background. Browsers throttle hidden tabs — frames may drop. Bring Agon to the front to finish a clean render.
+              </p>
+            )}
           </div>
         )}
         <p className="text-[12px] leading-snug text-muted">
-          Rendering happens in real time inside your browser — a 3-minute video takes 3 minutes. Keep this tab visible while it records. Videos of any length,
+          Rendering happens in real time inside your browser — a 3-minute video takes about 3 minutes. Keep this tab visible while it records. Videos of any length,
           as many as you like.
         </p>
         {!supported && <p className="text-[12px] text-red-300">This browser can’t record canvas video. Try Chrome, Edge or Firefox.</p>}
-        {error && <p className="rounded-lg border border-red-300/30 bg-red-300/10 p-2 text-[12px] leading-snug text-red-200">{error}</p>}
+        {error && <p className="rounded-lg border border-red-300/30 bg-red-300/10 p-2 text-[12px] leading-snug text-red-200" role="alert">{error}</p>}
       </Section>
 
       {latest && (
@@ -104,9 +117,9 @@ export function ExportPanel({ project, player, exporting, supported, mime, lates
               <a
                 href={latest.url}
                 download={`${slugify(latest.title)}.${latest.mime.includes('mp4') ? 'mp4' : 'webm'}`}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-mint px-3 py-1.5 text-[13px] font-medium text-ink hover:brightness-105"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-mint px-3 py-1.5 text-[13px] font-medium text-ink hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mint"
               >
-                <Download size={14} /> Download
+                <Download size={14} aria-hidden /> Download
               </a>
             </div>
           </div>
