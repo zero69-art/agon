@@ -90,16 +90,16 @@ const BG_CYCLE: BackgroundKind[] = ['aurora', 'bokeh', 'geo', 'starfield', 'wave
 const ACTIONS: ActionKind[] = ['idle', 'walk', 'run', 'jump', 'wave', 'fight', 'dance', 'sit', 'point', 'look', 'kneel', 'reach', 'talk'];
 
 function directive(text: string, key: string): string {
-  const match = text.match(new RegExp('\\\\[' + key + '\\s*:\\s*([^\\\\]]+)\\\\]', 'i'));
+  const match = text.match(new RegExp('\\[' + key + '\\s*:\\s*([^\\]]+)\\]', 'i'));
   return match?.[1]?.trim() ?? '';
 }
 
 function cleanDirectorCues(text: string): string {
   return text
-    .replace(/\\\\[(?:ACTION|CHARACTERS?|EMOTION|CAMERA)\\\\s*:\\s*[^\\\\]]+\\\\]/gi, '')
-    .replace(/^\\\\s*\\\\|\\\\s*/gm, '')
-    .replace(/[ \\t]{2,}/g, ' ')
-    .replace(/\\\\n{3,}/g, '\\n\\n')
+    .replace(/\[(?:ACTION|CHARACTERS?|EMOTION|CAMERA)\s*:\s*[^\]]+\]/gi, '')
+    .replace(/^\s*\|\s*/gm, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -110,18 +110,18 @@ function normalizeAction(value: string): ActionKind | undefined {
 
 function inferAction(text: string): ActionKind {
   const t = text.toLowerCase();
-  if (/\\\\b(run|runs|running|chase|chases|sprint|sprints)\\\\b/.test(t)) return 'run';
-  if (/\\\\b(jump|jumps|jumped|leap|leaps|leapt)\\\\b/.test(t)) return 'jump';
-  if (/\\\\b(wave|waves|waved|hello|beckon|beckons)\\\\b/.test(t)) return 'wave';
-  if (/\\\\b(fight|fights|attack|attacks|punch|punches|battle|battles)\\\\b/.test(t)) return 'fight';
-  if (/\\\\b(dance|dances|danced|twirl|twirls)\\\\b/.test(t)) return 'dance';
-  if (/\\\\b(sit|sits|sat|sit down)\\\\b/.test(t)) return 'sit';
-  if (/\\\\b(kneel|kneels|kneeling)\\\\b/.test(t)) return 'kneel';
-  if (/\\\\b(point|points|pointing|gesture|gestures)\\\\b/.test(t)) return 'point';
-  if (/\\\\b(reach|reaches|reaching|grab|grabs|grabs for)\\\\b/.test(t)) return 'reach';
-  if (/\\\\b(look|looks|stare|stares|watch|watches|gaze|gazes)\\\\b/.test(t)) return 'look';
-  if (/\\\\b(talk|talks|speaks|says|asks|replies|whispers|shouts|calls)\\\\b/.test(t)) return 'talk';
-  if (/\\\\b(walk|walks|walking|approach|approaches|steps)\\\\b/.test(t)) return 'walk';
+  if (/\b(run|runs|running|chase|chases|sprint|sprints)\b/.test(t)) return 'run';
+  if (/\b(jump|jumps|jumped|leap|leaps|leapt)\b/.test(t)) return 'jump';
+  if (/\b(wave|waves|waved|hello|beckon|beckons)\b/.test(t)) return 'wave';
+  if (/\b(fight|fights|attack|attacks|punch|punches|battle|battles)\b/.test(t)) return 'fight';
+  if (/\b(dance|dances|danced|twirl|twirls)\b/.test(t)) return 'dance';
+  if (/\b(sit|sits|sat|sit down)\b/.test(t)) return 'sit';
+  if (/\b(kneel|kneels|kneeling)\b/.test(t)) return 'kneel';
+  if (/\b(point|points|pointing|gesture|gestures)\b/.test(t)) return 'point';
+  if (/\b(reach|reaches|reaching|grab|grabs)\b/.test(t)) return 'reach';
+  if (/\b(look|looks|stare|stares|watch|watches|gaze|gazes)\b/.test(t)) return 'look';
+  if (/\b(talk|talks|speaks|says|asks|replies|whispers|shouts|calls)\b/.test(t)) return 'talk';
+  if (/\b(walk|walks|walking|approach|approaches|steps)\b/.test(t)) return 'walk';
   return 'idle';
 }
 
@@ -130,7 +130,7 @@ function inferCharacters(text: string): string[] {
   if (explicit) return explicit.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 2);
   const hits: string[] = [];
   for (const [key, label] of [['fox', 'fox'], ['vixen', 'fox'], ['bear', 'bear'], ['owl', 'owl'], ['rabbit', 'rabbit'], ['bunny', 'rabbit'], ['robot', 'robot'], ['android', 'robot']] as const) {
-    if (new RegExp('\\\\b' + key + '\\\\b', 'i').test(text) && !hits.includes(label)) hits.push(label);
+    if (new RegExp('\\b' + key + '\\b', 'i').test(text) && !hits.includes(label)) hits.push(label);
   }
   return hits.slice(0, 2);
 }
