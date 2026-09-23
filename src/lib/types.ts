@@ -8,6 +8,7 @@ export type FontStyle = 'display' | 'serif' | 'mono' | 'rounded';
 export type Quality = 'standard' | 'high' | 'ultra';
 export type CameraMotion = 'still' | 'push' | 'drift' | 'orbit' | 'parallax';
 export type SceneDimension = '2d' | '3d';
+export type ActionKind = 'idle' | 'walk' | 'run' | 'jump' | 'wave' | 'fight' | 'dance' | 'sit' | 'point' | 'look' | 'kneel' | 'reach' | 'talk';
 
 export interface Scene {
   id: string;
@@ -20,6 +21,10 @@ export interface Scene {
   locked: boolean;
   camera: CameraMotion;
   dimension: SceneDimension;
+  action?: ActionKind;
+  characters?: string[];
+  emotion?: string;
+  speakingCharacter?: string;
 }
 
 export interface Project {
