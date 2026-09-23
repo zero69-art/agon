@@ -590,8 +590,12 @@ export async function createThreeDirector(host, sceneCount = 1) {
 
   function dispose() {
     window.removeEventListener('resize', resize);
+    while (scene3d.children.length) {
+      const child = scene3d.children[0];
+      scene3d.remove(child);
+      disposeObject3D(child);
+    }
     renderer.dispose();
-    while (scene3d.children.length) scene3d.remove(scene3d.children[0]);
   }
 
   window.addEventListener('resize', resize);
