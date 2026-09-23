@@ -366,6 +366,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
   scene3d.add(rim);
 
   let environment = null;
+  let backdrop = null;
   let actors = [];
   let currentSignature = '';
   let lastW = 0;
@@ -411,6 +412,11 @@ export async function createThreeDirector(host, sceneCount = 1) {
       disposeObject3D(environment);
       environment = null;
     }
+    if (backdrop) {
+      scene3d.remove(backdrop);
+      disposeObject3D(backdrop);
+      backdrop = null;
+    }
     actors.forEach((actor) => {
       scene3d.remove(actor);
       disposeObject3D(actor);
@@ -438,7 +444,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
 
     actors.forEach((actor) => scene3d.add(actor));
 
-    const backdrop = new THREE.Mesh(
+    backdrop = new THREE.Mesh(
       new THREE.CircleGeometry(11, 64),
       new THREE.MeshBasicMaterial({ color: colorFor(paletteIndex, 0) }),
     );
