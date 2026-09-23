@@ -34,7 +34,7 @@ export function Chip({
       title={title}
       disabled={disabled}
       onClick={onClick}
-      className={`rounded-lg border px-3 py-1.5 text-[13px] leading-tight transition-all disabled:opacity-40 ${
+      className={`rounded-lg border px-3 py-1.5 text-[13px] leading-tight transition-all disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tangerine ${
         active
           ? 'border-cream bg-cream text-ink font-semibold shadow-[0_6px_18px_-8px_rgba(244,239,228,0.6)]'
           : 'border-line bg-surface-2 text-cream/80 hover:border-line-2 hover:text-cream hover:bg-surface-3'
@@ -49,7 +49,7 @@ type BtnVariant = 'primary' | 'ghost' | 'outline' | 'danger' | 'mint';
 
 export function Btn({ variant = 'ghost', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant }) {
   const base =
-    'inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none';
+    'inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all active:scale-[0.98] disabled:opacity-40 disabled:pointer-events-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tangerine';
   const v: Record<BtnVariant, string> = {
     primary: 'bg-tangerine text-ink hover:bg-tangerine-2 shadow-[0_10px_28px_-10px_rgba(255,106,43,0.75)]',
     mint: 'bg-mint text-ink hover:brightness-105 shadow-[0_10px_28px_-10px_rgba(182,245,200,0.6)]',
@@ -64,7 +64,7 @@ export function IconBtn({ active, className = '', ...props }: ButtonHTMLAttribut
   return (
     <button
       type="button"
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-all disabled:opacity-40 ${
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-lg border transition-all disabled:opacity-40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tangerine ${
         active ? 'border-tangerine/60 bg-tangerine/15 text-tangerine' : 'border-line bg-surface-2 text-cream/75 hover:text-cream hover:bg-surface-3'
       } ${className}`}
       {...props}
@@ -77,13 +77,14 @@ export function Toggle({ checked, onChange, label, hint }: { checked: boolean; o
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-left hover:bg-surface-3 transition-colors"
+      aria-pressed={checked}
+      className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-left hover:bg-surface-3 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tangerine"
     >
       <span>
         <span className="block text-sm text-cream">{label}</span>
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
-      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? 'bg-tangerine' : 'bg-line-2'}`}>
+      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${checked ? 'bg-tangerine' : 'bg-line-2'}`} aria-hidden>
         <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-cream transition-transform ${checked ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
       </span>
     </button>
@@ -124,6 +125,7 @@ export function Slider({
         disabled={disabled}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         className="w-full accent-tangerine"
+        aria-label={label}
       />
     </label>
   );
@@ -132,14 +134,17 @@ export function Slider({
 export function PaletteSwatches({ value, onChange, size = 'md' }: { value: number | null; onChange: (i: number) => void; size?: 'sm' | 'md' }) {
   const dim = size === 'sm' ? 'h-7 w-7' : 'h-9 w-9';
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2" role="listbox" aria-label="Color palette">
       {PALETTES.map((p, i) => (
         <button
           key={p.name}
           type="button"
           title={p.name}
+          aria-label={p.name}
+          aria-selected={value === i}
+          role="option"
           onClick={() => onChange(i)}
-          className={`relative ${dim} rounded-lg border transition-all ${
+          className={`relative ${dim} rounded-lg border transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tangerine ${
             value === i ? 'border-cream ring-2 ring-cream/40 scale-105' : 'border-line hover:scale-105'
           }`}
           style={{ background: `linear-gradient(135deg, ${p.bg[0]}, ${p.bg[1]})` }}
@@ -151,15 +156,28 @@ export function PaletteSwatches({ value, onChange, size = 'md' }: { value: numbe
   );
 }
 
-export function TabBar<T extends string>({ tabs, value, onChange, className = '' }: { tabs: { id: T; label: string; icon?: ReactNode }[]; value: T; onChange: (t: T) => void; className?: string }) {
+export function TabBar<T extends string>({
+  tabs,
+  value,
+  onChange,
+  className = '',
+}: {
+  tabs: { id: T; label: string; icon?: ReactNode }[];
+  value: T;
+  onChange: (t: T) => void;
+  className?: string;
+}) {
   return (
-    <div className={`flex gap-1 rounded-xl bg-surface-2 p-1 border border-line ${className}`}>
+    <div className={`flex gap-1 rounded-xl bg-surface-2 p-1 border border-line ${className}`} role="tablist">
       {tabs.map((t) => (
         <button
           key={t.id}
           type="button"
+          role="tab"
+          aria-selected={value === t.id}
+          aria-label={t.label}
           onClick={() => onChange(t.id)}
-          className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[12.5px] transition-all ${
+          className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[12.5px] transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tangerine ${
             value === t.id ? 'bg-surface-3 text-cream font-semibold shadow-sm' : 'text-muted hover:text-cream'
           }`}
         >
