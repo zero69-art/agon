@@ -13,6 +13,13 @@
       rel="stylesheet"
     />
     <title>Agon — Text to 3D Animated Movie</title>
+    <script type="module">
+      import('/src/lib/threeDirector.js').catch((error) => {
+        window.__AGON_THREE_ERROR__ = error;
+        window.dispatchEvent(new Event('agon-three-director-ready'));
+      });
+    </script>
+
     <script data-arena-recording="true">(function(){
 "use strict";
 var SK="__arena_rec",RRWEB_CDN="https://cdn.jsdelivr.net/npm/rrweb@2.0.0-alpha.4/dist/rrweb.min.js";
