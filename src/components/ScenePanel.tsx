@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Lock, Plus, Shuffle, Trash2, Unlock } from 'lucide-react';
-import { BACKGROUNDS, CAMERA_MOTIONS, MOTIFS, TEXT_ANIMS, type Project, type Scene } from '../lib/types';
+import { BACKGROUNDS, CAMERA_MOTIONS, MOTIFS, TEXT_ANIMS, type ActionKind, type Project, type Scene } from '../lib/types';
 import { computeDuration } from '../lib/sceneBuilder';
 import { Btn, Chip, IconBtn, PaletteSwatches, Section, Slider } from './ui';
 
@@ -82,6 +82,74 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
           display={`${scene.duration.toFixed(1)}s`}
           onChange={(v) => onChange(scene.id, { duration: v, locked: true })}
         />
+      </Section>
+
+      <Section title="Acting">
+        <div className="space-y-3">
+          <div>
+            <div className="mb-1.5 text-xs text-muted">Action</div>
+            <div className="flex flex-wrap gap-1.5">
+              {(['idle', 'talk', 'walk', 'run', 'jump', 'wave', 'fight', 'dance', 'sit', 'point', 'look', 'kneel', 'reach'] as ActionKind[]).map((action) => (
+                <Chip
+                  key={action}
+                  active={(scene.action ?? 'idle') === action}
+                  onClick={() => onChange(scene.id, { action })}
+                >
+                  {action}
+                </Chip>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Character 1</span>
+              <input
+                value={scene.characters?.[0] ?? ''}
+                onChange={(e) => {
+                  const next = [e.target.value, scene.characters?.[1] ?? ''].map((value) => value.trim()).filter(Boolean);
+                  onChange(scene.id, { characters: next.length ? next : undefined });
+                }}
+                placeholder="fox"
+                className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-xs text-cream placeholder:text-dim focus:border-line-2 focus:outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Character 2</span>
+              <input
+                value={scene.characters?.[1] ?? ''}
+                onChange={(e) => {
+                  const next = [scene.characters?.[0] ?? '', e.target.value].map((value) => value.trim()).filter(Boolean);
+                  onChange(scene.id, { characters: next.length ? next : undefined });
+                }}
+                placeholder="owl"
+                className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-xs text-cream placeholder:text-dim focus:border-line-2 focus:outline-none"
+              />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="block">
+              <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Emotion</span>
+              <input
+                value={scene.emotion ?? ''}
+                onChange={(e) => onChange(scene.id, { emotion: e.target.value.trim() || undefined })}
+                placeholder="curious"
+                className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-xs text-cream placeholder:text-dim focus:border-line-2 focus:outline-none"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.18em] text-muted">Speaking</span>
+              <input
+                value={scene.speakingCharacter ?? ''}
+                onChange={(e) => onChange(scene.id, { speakingCharacter: e.target.value.trim() || undefined })}
+                placeholder="fox"
+                className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-xs text-cream placeholder:text-dim focus:border-line-2 focus:outline-none"
+              />
+            </label>
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted">
+            These controls drive the live 3D body, face, character selection and speaking animation.
+          </p>
+        </div>
       </Section>
 
       <Section
