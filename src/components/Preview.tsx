@@ -75,6 +75,13 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   }, [onCanvas, project.aspect]);
 
   useEffect(() => {
+    const director = directorRef.current;
+    if (!director || !threeReady) return;
+    director.setOutputSize(exporting ? { w, h } : null);
+    onCanvas(director.canvas);
+  }, [exporting, h, onCanvas, threeReady, w]);
+
+  useEffect(() => {
     const families = ['"Bricolage Grotesque"', '"Fraunces"', '"DM Mono"', '"Nunito"', '"Instrument Sans"'];
     Promise.all(families.map((f) => document.fonts.load('700 40px ' + f).catch(() => undefined))).catch(() => undefined);
   }, []);
