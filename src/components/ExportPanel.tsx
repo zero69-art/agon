@@ -14,16 +14,19 @@ interface Props {
   mime: string;
   latest: ExportedClip | null;
   error: string | null;
+  webcodecs?: boolean;
+  webcodecsProgress?: number | null;
   onChange: (patch: Partial<Project>) => void;
   onStart: () => void;
   onCancel: () => void;
 }
 
-export function ExportPanel({ project, player, exporting, supported, mime, latest, error, onChange, onStart, onCancel }: Props) {
+export function ExportPanel({ project, player, exporting, supported, mime, latest, error, webcodecs, webcodecsProgress, onChange, onStart, onCancel }: Props) {
   usePlayer(player);
   const total = totalDuration(project);
   const { w, h } = canvasSize(project.aspect, project.quality);
-  const progress = exporting && total > 0 ? Math.min(1, player.time / total) : 0;
+  const liveProgress = exporting && total > 0 ? Math.min(1, player.time / total) : 0;
+  const progress = webcodecs && webcodecsProgress != null ? webcodecsProgress : liveProgress;
   const ext = mime.includes('mp4') ? 'MP4' : 'WebM';
   const [tabHidden, setTabHidden] = useState(() => typeof document !== 'undefined' && document.hidden);
 
@@ -73,7 +76,7 @@ export function ExportPanel({ project, player, exporting, supported, mime, lates
           <div className="space-y-2 rounded-xl border border-tangerine/40 bg-tangerine/5 p-3">
             <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.18em] text-tangerine">
               <span className="inline-flex items-center gap-1.5">
-                <Loader2 size={12} className="animate-spin" aria-hidden /> rendering
+                <Loader2 size={12} className="animate-spin" aria-hidden /> {webcodecs ? 'encoding' : 'recording'}
               </span>
               <span>{Math.round(progress * 100)}%</span>
             </div>
@@ -88,7 +91,7 @@ export function ExportPanel({ project, player, exporting, supported, mime, lates
                 <X size={12} aria-hidden /> Cancel
               </button>
             </div>
-            {tabHidden && (
+            {tabHidden && !webcodecs && (
               <p className="rounded-lg border border-amber-400/40 bg-amber-400/10 p-2 text-[12px] leading-snug text-amber-100" role="status">
                 This tab is in the background. Browsers throttle hidden tabs — frames may drop. Bring Agon to the front to finish a clean render.
               </p>
@@ -96,8 +99,17 @@ export function ExportPanel({ project, player, exporting, supported, mime, lates
           </div>
         )}
         <p className="text-[12px] leading-snug text-muted">
-          Rendering happens in real time inside your browser — a 3-minute video takes about 3 minutes. Keep this tab visible while it records. Videos of any length,
-          as many as you like.
+          {webcodecs ? (
+            <>
+              <span className="text-mint/90">Fast export (WebCodecs)</span> renders offline in a background worker — usually faster than realtime and does not require this tab to stay visible.
+              Output is silent WebM (add music in an editor if needed). Falls back automatically only when WebCodecs is unavailable.
+            </>
+          ) : (
+            <>
+              Rendering happens in real time inside your browser — a 3-minute video takes about 3 minutes. Keep this tab visible while it records. Videos of any length,
+              as many as you like.
+            </>
+          )}
         </p>
         {!supported && <p className="text-[12px] text-red-300">This browser can’t record canvas video. Try Chrome, Edge or Firefox.</p>}
         {error && <p className="rounded-lg border border-red-300/30 bg-red-300/10 p-2 text-[12px] leading-snug text-red-200" role="alert">{error}</p>}

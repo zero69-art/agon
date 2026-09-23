@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BookOpen, Film, Library, Music2, Palette, SlidersHorizontal, Wand2 } from 'lucide-react';
-import fixWebmDuration from 'fix-webm-duration';
 import { Header } from './components/Header';
 import { ScriptPanel } from './components/ScriptPanel';
 import { StoryForge } from './components/StoryForge';
@@ -14,23 +13,17 @@ import { ExportPanel } from './components/ExportPanel';
 import { TabBar } from './components/ui';
 import { Player, useMediaQuery } from './lib/player';
 import { music } from './lib/music';
+import { useVideoExport } from './lib/useVideoExport';
 import { blankProject, buildScenes, createProject, makeScene, randomizeScene, retimeScenes } from './lib/sceneBuilder';
 import { loadCurrent, loadLibrary, removeFromLibrary, saveCurrent, saveToLibrary } from './lib/storage';
 import { totalDuration } from './lib/timeline';
 import { downloadProjectExport, readProjectExport } from './lib/projectExport';
 import { applyPreset, PRESETS } from './lib/presets';
-import { slugify, uid } from './lib/rng';
 import type { ExportedClip, Project, Scene } from './lib/types';
 
 type LeftTab = 'script' | 'forge' | 'library';
 type RightTab = 'look' | 'scene' | 'sound' | 'export';
 type MobileTab = LeftTab | RightTab;
-
-function pickMime(): string {
-  if (typeof MediaRecorder === 'undefined') return '';
-  const candidates = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
-  return candidates.find((c) => MediaRecorder.isTypeSupported(c)) ?? '';
-}
 
 export default function App() {
   const playerRef = useRef<Player | null>(null);
@@ -45,28 +38,39 @@ export default function App() {
   const [leftTab, setLeftTab] = useState<LeftTab>('script');
   const [rightTab, setRightTab] = useState<RightTab>('look');
   const [mobileTab, setMobileTab] = useState<MobileTab>('script');
-  const [exporting, setExporting] = useState(false);
   const [musicPreview, setMusicPreview] = useState(false);
   const [saved, setSaved] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const cancelRef = useRef(false);
   const projectRef = useRef(project);
-  const exportingRef = useRef(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
-  const mime = useMemo(pickMime, []);
-  const supported = typeof HTMLCanvasElement !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype && mime !== '';
 
   useEffect(() => {
     projectRef.current = project;
   }, [project]);
 
-  useEffect(() => {
-    exportingRef.current = exporting;
-  }, [exporting]);
+  const videoExport = useVideoExport({
+    project,
+    projectRef,
+    player,
+    canvasRef,
+    isDesktop,
+    setRightTab: (t) => setRightTab(t),
+    setMobileTab: (t) => setMobileTab(t),
+    setClips,
+  });
+  const {
+    exporting,
+    exportError,
+    webcodecsProgress,
+    preferWebCodecs,
+    supported,
+    mime,
+    startExport,
+    cancelExport,
+    recorderRef,
+  } = videoExport;
 
   // autosave
   useEffect(() => {
@@ -87,17 +91,16 @@ export default function App() {
     music.setVolume(project.musicVolume);
   }, [project.musicVolume]);
 
-  // Pause export playback when tab is hidden (browsers throttle rAF / canvas)
+  // Pause MediaRecorder export when tab is hidden (WebCodecs path is not throttled)
   useEffect(() => {
     const onVis = () => {
-      if (document.hidden && exportingRef.current && player.playing) {
+      if (document.hidden && exporting && !preferWebCodecs && player.playing) {
         player.pause();
-        setExportError((prev) => prev ?? 'Export paused because this tab was hidden. Keep Agon visible, then press Render again if needed.');
       }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [player]);
+  }, [player, exporting, preferWebCodecs]);
 
   // keyboard: space toggles play when not typing
   useEffect(() => {
@@ -229,107 +232,7 @@ export default function App() {
     if (!isDesktop) setMobileTab('export');
   };
 
-  /* ------------------------------------------------------------ export */
-
-  const finishExport = useCallback(async (chunks: Blob[], type: string) => {
-    const p = projectRef.current;
-    const total = totalDuration(p);
-    let blob = new Blob(chunks, { type: type || 'video/webm' });
-    if (blob.type.includes('webm')) {
-      try {
-        blob = await fixWebmDuration(blob, Math.round(total * 1000), { logger: false });
-      } catch {
-        /* keep original */
-      }
-    }
-    const url = URL.createObjectURL(blob);
-    const clip: ExportedClip = {
-      id: uid(),
-      title: p.title || 'Untitled',
-      url,
-      size: blob.size,
-      duration: total,
-      mime: blob.type,
-      createdAt: Date.now(),
-    };
-    setClips((c) => [clip, ...c]);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${slugify(clip.title)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  }, []);
-
-  const startExport = () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !supported || !project.scenes.length || exporting) return;
-    if (document.hidden) {
-      setExportError('Bring this tab to the front, then start render. Hidden tabs are throttled and produce broken video.');
-      setRightTab('export');
-      if (!isDesktop) setMobileTab('export');
-      return;
-    }
-    setExportError(null);
-    setMusicPreview(false);
-    player.pause();
-    player.setLoop(false);
-    player.seek(0);
-    if (project.music !== 'none') music.start(project.music);
-    const stream = canvas.captureStream(30);
-    if (project.music !== 'none') {
-      const audio = music.audioStream;
-      audio?.getAudioTracks().forEach((t) => stream.addTrack(t));
-    }
-    let rec: MediaRecorder;
-    try {
-      rec = new MediaRecorder(stream, {
-        mimeType: mime,
-        videoBitsPerSecond: project.quality === 'ultra' ? 45_000_000 : project.quality === 'high' ? 14_000_000 : 7_000_000,
-        audioBitsPerSecond: 160_000,
-      });
-    } catch {
-      rec = new MediaRecorder(stream);
-    }
-    const chunks: Blob[] = [];
-    cancelRef.current = false;
-    rec.ondataavailable = (e) => {
-      if (e.data.size) chunks.push(e.data);
-    };
-    rec.onerror = () => {
-      cancelRef.current = true;
-      player.pause();
-      setExportError('The browser stopped recording. Try Standard or High quality, then export again in Chrome or Edge.');
-      if (rec.state !== 'inactive') rec.stop();
-    };
-    rec.onstop = () => {
-      stream.getTracks().forEach((t) => t.stop());
-      recorderRef.current = null;
-      setExporting(false);
-      if (!cancelRef.current) {
-        if (!chunks.length) setExportError('No video frames were captured. Keep the preview tab visible and try again.');
-        else void finishExport(chunks, rec.mimeType || mime);
-      }
-    };
-    recorderRef.current = rec;
-    setExporting(true);
-    setRightTab('export');
-    if (!isDesktop) setMobileTab('export');
-    rec.start(500);
-    // give the recorder a beat to attach before motion starts
-    window.setTimeout(() => {
-      if (!cancelRef.current && !document.hidden) player.play();
-    }, 120);
-  };
-
-  const cancelExport = () => {
-    cancelRef.current = true;
-    player.pause();
-    player.seek(0);
-    const rec = recorderRef.current;
-    if (rec && rec.state !== 'inactive') rec.stop();
-    else setExporting(false);
-  };
+  /* export logic: useVideoExport */
 
   const onEnded = useCallback(() => {
     const rec = recorderRef.current;
@@ -345,7 +248,7 @@ export default function App() {
         }
       }, 400);
     }
-  }, []);
+  }, [recorderRef]);
 
   const onCanvas = useCallback((c: HTMLCanvasElement | null) => {
     canvasRef.current = c;
@@ -398,6 +301,8 @@ export default function App() {
         mime={mime}
         latest={clips[0] ?? null}
         error={exportError}
+        webcodecs={preferWebCodecs}
+        webcodecsProgress={webcodecsProgress}
         onChange={update}
         onStart={startExport}
         onCancel={cancelExport}
