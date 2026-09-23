@@ -71,6 +71,15 @@ function makeDirectorManifest(result: StoryResult, genre: Genre, tone: Tone, len
         hero: index % 3 === 0 ? 'curious' : index % 3 === 1 ? 'surprised' : 'determined',
         support: index % 2 === 0 ? 'alert' : 'amused',
       },
+      director: {
+        action: /\\b(run|running|chase|jump|leap|wave|fight|attack|dance|sit|kneel|point|reach|look|watch|talk|speak|walk|approach)\\b/i.exec(text)?.[1] ?? 'idle',
+        emotion: /\\b(angry|sad|happy|excited|surprised|afraid|curious|determined|amused|alert)\\b/i.exec(text)?.[1] ?? 'neutral',
+        characters: [/\\b(fox|bear|owl|rabbit|bunny|robot|android)\\b/gi].flatMap(() => {
+          const found = Array.from(text.matchAll(/\\b(fox|bear|owl|rabbit|bunny|robot|android)\\b/gi)).map((m) => m[1].toLowerCase());
+          return [...new Set(found)].slice(0, 2);
+        }),
+        speakingCharacter: text.match(/^\\s*([^:]{1,32}):/)?.[1]?.trim() ?? null,
+      },
       dialogue: text.match(/[A-Z][A-Z0-9 _-]{1,20}:\s*[^.!?]+[.!?]?/g) ?? [],
     })),
   };
