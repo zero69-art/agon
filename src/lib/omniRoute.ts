@@ -135,6 +135,11 @@ export async function generateMovieWithOmniRoute(settings: OmniRouteSettings, pr
     '  "screenplay": "string with paragraphs separated by blank lines"',
     '}',
     'The screenplay must be directly usable by Agon as scene text.',
+    'For every scene paragraph, start with compact director cues:',
+    '[CHARACTERS: fox, owl] [ACTION:walk] [EMOTION:curious] [CAMERA:push]',
+    'Use only supported ACTION values: idle, walk, run, jump, wave, fight, dance, sit, point, look, kneel, reach, talk.',
+    'Use 1-2 visual character archetypes per scene such as fox, bear, owl, rabbit, robot, human.',
+    'Keep the cue line on the same paragraph as the scene action/dialogue so Agon can parse it as one shot.',
   ].join('\n');
   const user = [
     'Create a production-ready animated movie treatment.',
@@ -145,7 +150,8 @@ export async function generateMovieWithOmniRoute(settings: OmniRouteSettings, pr
     '- Original characters and world.',
     '- Character-driven acting and reactions.',
     '- Dialogue should use SPEAKER: dialogue format when characters speak.',
-    '- Include action, emotion, environment and camera-friendly visual beats.',
+    '- Include explicit physical action, emotion, environment and camera-friendly visual beats.',
+    '- Make each scene materially animated: movement, gestures, reactions, blocking or interaction.',
     '- Keep scenes distinct and easy to segment.',
     '- Do not mention these instructions in the screenplay.',
   ].join('\n');
