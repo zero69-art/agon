@@ -39,18 +39,18 @@ function inferSpecies(text, fallback) {
 
 function inferAction(text) {
   const t = text.toLowerCase();
-  if (/\b(?:run|runs|running|chase|chases|sprint|sprints)\b/.test(t)) return 'run';
-  if (/\b(?:jump|jumps|jumped|leap|leaps|leapt)\b/.test(t)) return 'jump';
-  if (/\b(?:wave|waves|waved|hello|beckon|beckons)\b/.test(t)) return 'wave';
+  if (/\b(?:run|runs|running|ran|chase|chases|chased|sprint|sprints|sprinted)\b/.test(t)) return 'run';
+  if (/\b(?:jump|jumps|jumped|leap|leaps|leapt|hopped|hops)\b/.test(t)) return 'jump';
+  if (/\b(?:wave|waves|waved|hello|beckon|beckons|greeted|greet|signaled|signal)\b/.test(t)) return 'wave';
   if (/\b(?:fight|fights|attack|attacks|punch|punches|battle|battles)\b/.test(t)) return 'fight';
   if (/\b(?:dance|dances|danced|twirl|twirls)\b/.test(t)) return 'dance';
-  if (/\b(?:sit|sits|sat)\b/.test(t)) return 'sit';
+  if (/\b(?:sit|sits|sat|seated)\b/.test(t)) return 'sit';
   if (/\b(?:kneel|kneels|kneeling)\b/.test(t)) return 'kneel';
   if (/\b(?:point|points|pointing|gesture|gestures)\b/.test(t)) return 'point';
-  if (/\b(?:reach|reaches|reaching|grab|grabs)\b/.test(t)) return 'reach';
-  if (/\b(?:look|looks|stare|stares|watch|watches|gaze|gazes)\b/.test(t)) return 'look';
+  if (/\b(?:reach|reaches|reaching|grab|grabs|grabbed|gather|gathered|held|hold|holds|open|opened|pull|pulled|push|pushed)\b/.test(t)) return 'reach';
+  if (/\b(?:look|looks|looked|stare|stares|watched|watch|watches|gaze|gazes|noticed|noticed)\b/.test(t)) return 'look';
   if (/\b(?:talk|talks|speaks|says|asks|replies|whispers|shouts|calls)\b/.test(t)) return 'talk';
-  if (/\b(?:walk|walks|walking|approach|approaches|steps)\b/.test(t)) return 'walk';
+  if (/\b(?:walk|walks|walking|walked|approach|approaches|approached|steps|stepped|climb|climbed|row|rowed|sailed|crossed|entered|followed)\b/.test(t)) return 'walk';
   return 'idle';
 }
 
@@ -566,21 +566,21 @@ export async function createThreeDirector(host, sceneCount = 1) {
     let targetX = 0;
     let targetZ = 0;
     let camX = 0;
-    let camY = 3.1;
-    let camZ = 8.6;
+    let camY = 2.85;
+    let camZ = 6.6;
 
     if (cameraMode === 'push') {
-      camZ = 8.6 - ease(progress) * 2.0;
-      camY = 3.0;
+      camZ = 6.6 - ease(progress) * 1.6;
+      camY = 2.75;
     } else if (cameraMode === 'drift') {
       camX = Math.sin(globalTime * 0.25) * 1.0;
       camY = 3.2 + Math.cos(globalTime * 0.2) * 0.18;
     } else if (cameraMode === 'orbit') {
       camX = Math.sin(globalTime * 0.32) * 2.6;
-      camZ = 8.2 + Math.cos(globalTime * 0.32) * 0.7;
+      camZ = 6.3 + Math.cos(globalTime * 0.32) * 0.6;
     } else if (cameraMode === 'parallax') {
       camX = Math.sin(globalTime * 0.45) * 0.9;
-      camZ = 8.2;
+      camZ = 6.4;
     }
 
     camera.position.set(camX, camY, camZ);
