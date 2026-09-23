@@ -13,6 +13,19 @@
       rel="stylesheet"
     />
     <title>Fablereel — Text to Animated Video</title>
+    <script type="module">
+      window.__AGON_THREE_PROMISE__ = import("https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js")
+        .then((three) => {
+          window.__AGON_THREE__ = three;
+          window.dispatchEvent(new Event("agon-three-ready"));
+          return three;
+        })
+        .catch((error) => {
+          window.__AGON_THREE_ERROR__ = error;
+          window.dispatchEvent(new Event("agon-three-ready"));
+          throw error;
+        });
+    </script>
     <script data-arena-recording="true">(function(){
 "use strict";
 var SK="__arena_rec",RRWEB_CDN="https://cdn.jsdelivr.net/npm/rrweb@2.0.0-alpha.4/dist/rrweb.min.js";
