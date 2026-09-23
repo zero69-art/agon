@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Maximize2, Mic, MicOff, Pause, Play, Repeat, RotateCcw } from 'lucide-react';
 import { renderFrame } from '../lib/renderer';
-import { createThreeDirector } from '../lib/threeDirector.js';
 import { music } from '../lib/music';
 import { getTimeline, itemAt, totalDuration } from '../lib/timeline';
 import { canvasSize, type Project, type Scene } from '../lib/types';
@@ -17,10 +16,17 @@ interface Props {
   exporting: boolean;
 }
 
+interface ThreeDirector {
+  canvas: HTMLCanvasElement;
+  render: (project: Project, scene: Scene | null, local: number, globalTime: number) => void;
+  dispose: () => void;
+  setOutputSize?: (size: { w: number; h: number } | null) => void;
+}
+
 export function Preview({ project, player, onCanvas, onEnded, exporting }: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const fallbackCanvasRef = useRef<HTMLCanvasElement>(null);
-  const directorRef = useRef<Awaited<ReturnType<typeof createThreeDirector>> | null>(null);
+  const directorRef = useRef<ThreeDirector | null>(null);
   const projectRef = useRef(project);
   const onEndedRef = useRef(onEnded);
   const lastSpoken = useRef<string | null>(null);
@@ -48,8 +54,9 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
     setThreeError(null);
     onCanvas(null);
 
-    void createThreeDirector(host, project.scenes.length)
-      .then((director) => {
+    void import('../lib/threeDirector.js')
+      .then(({ createThreeDirector }) => createThreeDirector(host, project.scenes.length))
+      .then((director: ThreeDirector) => {
         if (!alive) {
           director.dispose();
           return;
@@ -77,7 +84,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   useEffect(() => {
     const director = directorRef.current;
     if (!director || !threeReady) return;
-    director.setOutputSize(exporting ? { w, h } : null);
+    director.setOutputSize?.(exporting ? { w, h } : null);
     onCanvas(director.canvas);
   }, [exporting, h, onCanvas, threeReady, w]);
 
