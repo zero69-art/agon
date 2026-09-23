@@ -34,6 +34,76 @@ const mod = (a: number, n: number) => ((a % n) + n) % n;
 
 type Ctx = CanvasRenderingContext2D;
 
+type ThreeDirectorBridge = {
+  canvas: HTMLCanvasElement;
+  render: (project: Project, scene: Scene | null, local: number, globalTime: number) => void;
+  dispose: () => void;
+  setOutputSize?: (size: { w: number; h: number } | null) => void;
+};
+
+let threeDirector: ThreeDirectorBridge | null = null;
+let threeDirectorPromise: Promise<void> | null = null;
+let threeHost: HTMLDivElement | null = null;
+
+function ensureThreeDirector(sceneCount: number, w: number, h: number): void {
+  if (typeof window === 'undefined') return;
+  if (threeDirector) {
+    threeDirector.setOutputSize?.({ w, h });
+    return;
+  }
+  if (threeDirectorPromise) return;
+
+  const create = (window as Window & {
+    __AGON_CREATE_THREE_DIRECTOR__?: (host: HTMLDivElement, sceneCount: number) => Promise<ThreeDirectorBridge>;
+  }).__AGON_CREATE_THREE_DIRECTOR__;
+  if (typeof create !== 'function') return;
+
+  threeHost = document.createElement('div');
+  threeHost.setAttribute('aria-hidden', 'true');
+  threeHost.style.position = 'fixed';
+  threeHost.style.left = '-10000px';
+  threeHost.style.top = '-10000px';
+  threeHost.style.width = '1px';
+  threeHost.style.height = '1px';
+  threeHost.style.pointerEvents = 'none';
+  threeHost.style.opacity = '0';
+  document.body.appendChild(threeHost);
+
+  threeDirectorPromise = create(threeHost, sceneCount)
+    .then((director) => {
+      threeDirector = director;
+      director.setOutputSize?.({ w, h });
+    })
+    .catch(() => {
+      threeDirector = null;
+    })
+    .finally(() => {
+      threeDirectorPromise = null;
+    });
+}
+
+function renderThreeToCanvas(
+  ctx: Ctx,
+  project: Project,
+  scene: Scene,
+  local: number,
+  globalTime: number,
+  w: number,
+  h: number,
+  sceneCount: number,
+): boolean {
+  if (scene.dimension !== '3d') return false;
+  ensureThreeDirector(sceneCount, w, h);
+  if (!threeDirector) return false;
+  threeDirector.setOutputSize?.({ w, h });
+  threeDirector.render(project, scene, local, globalTime);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(threeDirector.canvas, 0, 0, w, h);
+  return true;
+}
+
 let off: HTMLCanvasElement | null = null;
 function offscreen(w: number, h: number): Ctx {
   if (!off) off = document.createElement('canvas');
@@ -59,6 +129,10 @@ export function renderFrame(ctx: Ctx, project: Project, time: number, w: number,
   const hit = itemAt(tl, t)!;
   const { item, i, local } = hit;
   const trans = project.transition;
+
+  if (item.kind === 'scene' && item.scene && (trans === 'cut' || i === 0 || local >= TRANSITION)) {
+    if (renderThreeToCanvas(ctx, project, item.scene, local, t, w, h, project.scenes.length)) return;
+  }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
