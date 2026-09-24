@@ -96,7 +96,7 @@ function directive(text: string, key: string): string {
 
 function cleanDirectorCues(text: string): string {
   return text
-    .replace(/\[(?:ACTION|CHARACTERS?|EMOTION|CAMERA|ASSET)\s*:\s*[^\]]+\]/gi, '')
+    .replace(/\[(?:ACTION|CHARACTERS?|EMOTION|CAMERA|ASSET|ENVIRONMENT)\s*:\s*[^\]]+\]/gi, '')
     .replace(/^\s*\|\s*/gm, '')
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
@@ -148,7 +148,7 @@ function inferCharacters(text: string): string[] {
   const explicit = directive(text, 'CHARACTERS');
   if (explicit) return explicit.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 2);
   const hits: string[] = [];
-  for (const [key, label] of [['human', 'human'], ['person', 'human'], ['man', 'human'], ['woman', 'human'], ['boy', 'human'], ['girl', 'human'], ['hero', 'human'], ['villager', 'human'], ['soldier', 'human'], ['guard', 'human'], ['knight', 'human'], ['wizard', 'human'], ['worker', 'human'], ['captain', 'human'], ['pirate', 'human'], ['fox', 'fox'], ['vixen', 'fox'], ['bear', 'bear'], ['owl', 'owl'], ['rabbit', 'rabbit'], ['bunny', 'rabbit'], ['robot', 'robot'], ['android', 'robot']] as const) {
+  for (const [key, label] of [['human', 'human'], ['person', 'human'], ['man', 'human'], ['woman', 'human'], ['boy', 'human'], ['girl', 'human'], ['hero', 'human'], ['villager', 'villager'], ['soldier', 'soldier'], ['guard', 'guard'], ['knight', 'knight'], ['wizard', 'wizard'], ['worker', 'worker'], ['captain', 'captain'], ['pirate', 'pirate'], ['mage', 'mage'], ['ranger', 'ranger'], ['rogue', 'rogue'], ['barbarian', 'barbarian'], ['druid', 'druid'], ['engineer', 'engineer'], ['adventurer', 'adventurer'], ['fox', 'fox'], ['vixen', 'fox'], ['bear', 'bear'], ['owl', 'owl'], ['rabbit', 'rabbit'], ['bunny', 'rabbit'], ['robot', 'robot'], ['android', 'robot']] as const) {
     if (new RegExp('\\b' + key + '\\b', 'i').test(text) && !hits.includes(label)) hits.push(label);
   }
   return hits.slice(0, 2);
