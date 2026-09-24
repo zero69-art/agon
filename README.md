@@ -67,3 +67,13 @@ Agon can use a local or self-hosted OmniRoute instance as its AI director while 
 - Default routing model: `auto/quality`
 
 The connection settings live in the Story Forge panel and are stored locally in the browser. No OmniRoute or provider key is bundled into the application.
+
+## Quaternius 3D assets
+
+Agon can render human characters with Quaternius' CC0 **Universal Base Characters** and animate them with the CC0 **Universal Animation Library**. The browser loads these GLB assets at runtime, while `public/credits/QUATERNIUS.txt` records the sources and license.
+
+Official packs:
+- https://quaternius.com/packs/universalbasecharacters.html
+- https://quaternius.com/packs/universalanimationlibrary.html
+
+For 3D scenes, **Auto** uses Quaternius for human characters and Agon's procedural runtime for animal/robot characters. 3D projects use the real-time capture export path so imported models and animations are included in the video.
