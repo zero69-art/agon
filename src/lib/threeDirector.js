@@ -701,10 +701,11 @@ export async function createThreeDirector(host, sceneCount = 1) {
     const s1 = requested[1] ? speciesFromCharacter(requested[1], 'human') : inferSpecies(baseText, 'human');
     const assetMode = currentScene?.asset || 'auto';
     const requestedLabels = [requested[0], requested[1]];
-    const useKayKit = assetMode === 'kaykit' || (assetMode === 'auto' && /\b(knight|mage|wizard|ranger|rogue|barbarian|druid|engineer|adventurer)\b/i.test(String(label || '')));
-    const useQuaternius = assetMode !== 'procedural' && !useKayKit &&
-      (assetMode === 'quaternius' || (assetMode === 'auto' && (species === 'human' || isQuaterniusCharacterLabel(label))));
     const makeSceneActor = (species, index, label) => {
+      const useKayKit = assetMode === 'kaykit' ||
+        (assetMode === 'auto' && /\b(knight|mage|wizard|ranger|rogue|barbarian|druid|engineer|adventurer)\b/i.test(String(label || '')));
+      const useQuaternius = assetMode !== 'procedural' && !useKayKit &&
+        (assetMode === 'quaternius' || (assetMode === 'auto' && (species === 'human' || isQuaterniusCharacterLabel(label))));
       if (useKayKit) {
         const imported = makeKayKitActor(index);
         if (imported) return imported;
