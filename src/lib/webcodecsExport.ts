@@ -116,12 +116,13 @@ async function exportOnMainThread(project: Project, opts: ExportOptions): Promis
   const muxer = new SimpleWebmMuxer(w, h, codec.webmCodecId, fps);
   const output: EncodedVideoChunk[] = [];
   let encoder: VideoEncoder | null = null;
+  let encoderError: Error | null = null;
 
   try {
     encoder = new VideoEncoder({
       output: (chunk) => output.push(chunk),
       error: (error) => {
-        throw new Error(error.message || 'VideoEncoder error');
+        encoderError = new Error(error.message || 'VideoEncoder error');
       },
     });
 
@@ -154,6 +155,7 @@ async function exportOnMainThread(project: Project, opts: ExportOptions): Promis
       frame.close();
 
       await waitForEncoderCapacity(encoder, opts.signal);
+      if (encoderError) throw encoderError;
 
       while (output.length) {
         const chunk = output.shift()!;
@@ -168,6 +170,7 @@ async function exportOnMainThread(project: Project, opts: ExportOptions): Promis
     }
 
     await encoder.flush();
+    if (encoderError) throw encoderError;
 
     while (output.length) {
       const chunk = output.shift()!;
