@@ -8,6 +8,7 @@ interface Props {
   onExportVideo: () => void;
   compact?: boolean;
   exporting?: boolean;
+  exportError?: string | null;
 }
 
 export function Logo({ size = 28 }: { size?: number }) {
@@ -19,7 +20,7 @@ export function Logo({ size = 28 }: { size?: number }) {
   );
 }
 
-export function Header({ title, onTitle, onNew, onExportVideo, compact, exporting }: Props) {
+export function Header({ title, onTitle, onNew, onExportVideo, compact, exporting, exportError }: Props) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-ink/85 px-4 backdrop-blur">
       <div className="flex shrink-0 items-center gap-2.5">
@@ -41,6 +42,9 @@ export function Header({ title, onTitle, onNew, onExportVideo, compact, exportin
         <FilePlus2 size={15} />
         <span className="hidden sm:inline">New</span>
       </Btn>
+      <div className="hidden max-w-[280px] truncate text-[10px] text-red-200 sm:block" role={exportError ? 'alert' : undefined}>
+        {exportError ?? ''}
+      </div>
       <Btn variant="primary" onClick={onExportVideo} title="Export video" aria-label="Export video" className="!h-9 !px-3" disabled={exporting}>
         <Film size={15} />
         <span>{exporting ? 'Rendering…' : 'Export'}</span>
