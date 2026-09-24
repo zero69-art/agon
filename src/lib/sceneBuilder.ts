@@ -1,6 +1,6 @@
 import { PALETTES } from './palettes';
 import { hashString, mulberry32, pick, uid } from './rng';
-import type { ActionKind, BackgroundKind, CameraMotion, MotifKind, Project, Scene, TextAnim } from './types';
+import type { ActionKind, BackgroundKind, CameraMotion, MotifKind, Project, Scene, SceneAssetMode, TextAnim } from './types';
 
 const MAX_WORDS = 22;
 const HARD_MAX = 28;
@@ -96,7 +96,7 @@ function directive(text: string, key: string): string {
 
 function cleanDirectorCues(text: string): string {
   return text
-    .replace(/\[(?:ACTION|CHARACTERS?|EMOTION|CAMERA)\s*:\s*[^\]]+\]/gi, '')
+    .replace(/\[(?:ACTION|CHARACTERS?|EMOTION|CAMERA|ASSET)\s*:\s*[^\]]+\]/gi, '')
     .replace(/^\s*\|\s*/gm, '')
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
@@ -125,11 +125,19 @@ function inferAction(text: string): ActionKind {
   return 'idle';
 }
 
+function normalizeAsset(value: string): SceneAssetMode | undefined {
+  const v = value.trim().toLowerCase();
+  if (v === 'quaternius' || v === 'human' || v === 'free') return 'quaternius';
+  if (v === 'procedural' || v === 'generated') return 'procedural';
+  if (v === 'auto') return 'auto';
+  return undefined;
+}
+
 function inferCharacters(text: string): string[] {
   const explicit = directive(text, 'CHARACTERS');
   if (explicit) return explicit.split(',').map((item) => item.trim()).filter(Boolean).slice(0, 2);
   const hits: string[] = [];
-  for (const [key, label] of [['fox', 'fox'], ['vixen', 'fox'], ['bear', 'bear'], ['owl', 'owl'], ['rabbit', 'rabbit'], ['bunny', 'rabbit'], ['robot', 'robot'], ['android', 'robot']] as const) {
+  for (const [key, label] of [['human', 'human'], ['person', 'human'], ['man', 'human'], ['woman', 'human'], ['boy', 'human'], ['girl', 'human'], ['hero', 'human'], ['villager', 'human'], ['soldier', 'human'], ['guard', 'human'], ['knight', 'human'], ['wizard', 'human'], ['worker', 'human'], ['captain', 'human'], ['pirate', 'human'], ['fox', 'fox'], ['vixen', 'fox'], ['bear', 'bear'], ['owl', 'owl'], ['rabbit', 'rabbit'], ['bunny', 'rabbit'], ['robot', 'robot'], ['android', 'robot']] as const) {
     if (new RegExp('\\b' + key + '\\b', 'i').test(text) && !hits.includes(label)) hits.push(label);
   }
   return hits.slice(0, 2);
@@ -148,6 +156,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
   const action = normalizeAction(directive(text, 'ACTION')) ?? inferAction(text);
   const characters = inferCharacters(text);
   const emotion = directive(text, 'EMOTION');
+  const asset = normalizeAsset(directive(text, 'ASSET')) ?? 'auto';
   const cameraCue = directive(text, 'CAMERA').toLowerCase().trim();
   const camera = (CAMERAS.includes(cameraCue as CameraMotion) ? cameraCue : CAMERAS[index % CAMERAS.length]) as CameraMotion;
   const cleanText = cleanDirectorCues(text);
@@ -164,6 +173,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
     locked: false,
     camera,
     dimension: '3d',
+    asset,
     action,
     characters: characters.length ? characters : undefined,
     emotion: emotion || undefined,
