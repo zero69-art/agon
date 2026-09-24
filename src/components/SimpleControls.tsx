@@ -39,7 +39,7 @@ export function SimpleControls({ project, onChange, onWpm, onExport, exporting }
           min={0}
           max={1}
           step={0.01}
-          display={project.music === 'none' ? 'off' : \`\${Math.round(project.musicVolume * 100)}%\`}
+          display={project.music === 'none' ? 'off' : `${Math.round(project.musicVolume * 100)}%`}
           onChange={(v) => onChange({ musicVolume: v })}
           disabled={project.music === 'none'}
         />
@@ -62,7 +62,7 @@ export function SimpleControls({ project, onChange, onWpm, onExport, exporting }
       </Section>
 
       <Section title="Pacing">
-        <Slider label="Reading pace" value={project.wpm} min={110} max={220} step={5} onChange={onWpm} display={\`\${project.wpm} wpm\`} />
+        <Slider label="Reading pace" value={project.wpm} min={110} max={220} step={5} onChange={onWpm} display={`${project.wpm} wpm`} />
       </Section>
 
       <Section title="Export">
