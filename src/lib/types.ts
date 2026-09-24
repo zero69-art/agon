@@ -8,7 +8,8 @@ export type FontStyle = 'display' | 'serif' | 'mono' | 'rounded';
 export type Quality = 'standard' | 'high' | 'ultra';
 export type CameraMotion = 'still' | 'push' | 'drift' | 'orbit' | 'parallax';
 export type SceneDimension = '2d' | '3d';
-export type SceneAssetMode = 'auto' | 'quaternius' | 'procedural';
+export type SceneAssetMode = 'auto' | 'quaternius' | 'kaykit' | 'procedural';
+export type EnvironmentAssetMode = 'auto' | 'kaykit-forest' | 'kenney-nature' | 'kaykit-space' | 'procedural';
 export type ActionKind = 'idle' | 'walk' | 'run' | 'jump' | 'wave' | 'fight' | 'dance' | 'sit' | 'point' | 'look' | 'kneel' | 'reach' | 'talk';
 
 export interface Scene {
@@ -23,6 +24,7 @@ export interface Scene {
   camera: CameraMotion;
   dimension: SceneDimension;
   asset?: SceneAssetMode;
+  environmentAsset?: EnvironmentAssetMode;
   action?: ActionKind;
   characters?: string[];
   emotion?: string;

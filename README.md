@@ -77,3 +77,10 @@ Official packs:
 - https://quaternius.com/packs/universalanimationlibrary.html
 
 For 3D scenes, **Auto** uses Quaternius for human characters and Agon's procedural runtime for animal/robot characters. 3D projects use the real-time capture export path so imported models and animations are included in the video.
+
+
+## Free movie asset sources
+
+Agon now has a runtime asset registry for free/CC0 movie assets. The active runtime set includes KayKit Crew, KayKit Forest Nature, Kenney Nature and KayKit Space Base, alongside the existing Quaternius human and animation runtime. Assets are cached when available and every 3D scene keeps a procedural fallback.
+
+The source catalog and license notes live in `src/lib/assetRegistry.ts` and `public/credits/FREE_3D_ASSETS.txt`.
