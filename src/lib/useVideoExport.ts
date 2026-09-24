@@ -146,6 +146,7 @@ export function useVideoExport(opts: {
       return;
     }
     setExportError(null);
+    cancelRef.current = false;
     setExporting(true);
     setRightTab('export');
     if (!isDesktop) setMobileTab('export');
