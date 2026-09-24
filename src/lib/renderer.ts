@@ -20,7 +20,6 @@ export const FONT_FAMILY: Record<FontStyle, string> = {
   rounded: '"Nunito", "Instrument Sans", sans-serif',
 };
 
-const TRANSITION = 0.8;
 const TAU = Math.PI * 2;
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
@@ -154,7 +153,7 @@ export function renderFrame(ctx: Ctx, project: Project, time: number, w: number,
   const total = tl[tl.length - 1].start + tl[tl.length - 1].duration;
   const t = Math.min(Math.max(time, 0), total - 0.0001);
   const hit = itemAt(tl, t)!;
-  const { item, i, local } = hit;
+  const { item, local } = hit;
   const trans = project.transition;
 
   if (item.kind === 'scene' && item.scene) {
