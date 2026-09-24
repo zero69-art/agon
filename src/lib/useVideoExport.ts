@@ -2,10 +2,10 @@ import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefO
 import fixWebmDuration from 'fix-webm-duration';
 import { music } from './music';
 import { totalDuration } from './timeline';
-import { canvasSize } from './types';
+import { canvasSize, type Project } from './types';
 import { ensureThreeDirectorReady, renderFrame } from './renderer';
 import { slugify, uid } from './rng';
-import type { ExportedClip, Project } from './types';
+import type { ExportedClip } from './types';
 import type { Player } from './player';
 import { canUseWebCodecsExport, exportWithWebCodecs } from './webcodecsExport';
 
@@ -28,7 +28,13 @@ async function preloadRealtime3DAssets(project: Project): Promise<void> {
 
 function pickMime(): string {
   if (typeof MediaRecorder === 'undefined') return '';
-  const candidates = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  const candidates = [
+    'video/mp4;codecs=avc1,mp4a.40.2',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ];
   return candidates.find((c) => MediaRecorder.isTypeSupported(c)) ?? '';
 }
 
@@ -50,7 +56,13 @@ export function useVideoExport(opts: {
   const cancelRef = useRef(false);
   const exportAbortRef = useRef<AbortController | null>(null);
   const mime = useMemo(() => pickMime(), []);
-  const preferWebCodecs = useMemo(() => canUseWebCodecsExport() && !projectUsesRealtime3D(project), [project]);
+
+  const uses3D = projectUsesRealtime3D(project);
+  const preferWebCodecs = useMemo(
+    () => canUseWebCodecsExport() && (!uses3D || project.music === 'none'),
+    [project.music, uses3D],
+  );
+
   const mediaRecorderSupported =
     typeof HTMLCanvasElement !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype && mime !== '';
 
@@ -87,7 +99,7 @@ export function useVideoExport(opts: {
     [projectRef, setClips],
   );
 
-  const startWebCodecsExport = useCallback(() => {
+  const startWebCodecsExport = useCallback(async () => {
     if (!project.scenes.length || exporting) return;
     setExportError(null);
     setWebcodecsProgress(0);
@@ -96,49 +108,46 @@ export function useVideoExport(opts: {
     setExporting(true);
     setRightTab('export');
     if (!isDesktop) setMobileTab('export');
+
     const ac = new AbortController();
     exportAbortRef.current = ac;
-    void exportWithWebCodecs(project, {
-      fps: 30,
-      signal: ac.signal,
-      onProgress: (p) => setWebcodecsProgress(p.ratio),
-    })
-      .then((result) => {
-        const url = URL.createObjectURL(result.blob);
-        const clip: ExportedClip = {
-          id: uid(),
-          title: projectRef.current.title || 'Untitled',
-          url,
-          size: result.blob.size,
-          duration: result.duration,
-          mime: result.mime,
-          createdAt: Date.now(),
-        };
-        setClips((c) => [clip, ...c]);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${slugify(clip.title)}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === 'AbortError') return;
-        setExportError(err instanceof Error ? err.message : 'WebCodecs export failed');
-      })
-      .finally(() => {
-        exportAbortRef.current = null;
-        setExporting(false);
-        setWebcodecsProgress(null);
+    try {
+      if (uses3D) await preloadRealtime3DAssets(project);
+      const result = await exportWithWebCodecs(project, {
+        fps: 30,
+        signal: ac.signal,
+        mainThreadRenderer: uses3D,
+        onProgress: (p) => setWebcodecsProgress(p.ratio),
       });
-  }, [project, exporting, player, isDesktop, setRightTab, setMobileTab, projectRef, setClips]);
 
-  const startExport = useCallback(async () => {
-    if (!project.scenes.length || exporting) return;
-    if (preferWebCodecs) {
-      startWebCodecsExport();
-      return;
+      const url = URL.createObjectURL(result.blob);
+      const clip: ExportedClip = {
+        id: uid(),
+        title: projectRef.current.title || 'Untitled',
+        url,
+        size: result.blob.size,
+        duration: result.duration,
+        mime: result.mime,
+        createdAt: Date.now(),
+      };
+      setClips((c) => [clip, ...c]);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${slugify(clip.title)}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      setExportError(err instanceof Error ? err.message : 'Frame-accurate export failed');
+    } finally {
+      exportAbortRef.current = null;
+      setExporting(false);
+      setWebcodecsProgress(null);
     }
+  }, [project, exporting, uses3D, player, isDesktop, setRightTab, setMobileTab, projectRef, setClips]);
+
+  const startRealtimeExport = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas || !mediaRecorderSupported) {
       setExportError('Video recording is unavailable in this browser. Use the latest Chrome or Edge.');
@@ -150,11 +159,13 @@ export function useVideoExport(opts: {
       if (!isDesktop) setMobileTab('export');
       return;
     }
+
     setExportError(null);
     cancelRef.current = false;
     setExporting(true);
     setRightTab('export');
     if (!isDesktop) setMobileTab('export');
+
     await preloadRealtime3DAssets(project);
     if (cancelRef.current) {
       setExporting(false);
@@ -164,6 +175,7 @@ export function useVideoExport(opts: {
     const { w, h } = canvasSize(project.aspect, project.quality);
     const originalWidth = canvas.width;
     const originalHeight = canvas.height;
+
     const restoreCanvasSize = () => {
       if (canvas.width === originalWidth && canvas.height === originalHeight) return;
       canvas.width = originalWidth;
@@ -195,10 +207,12 @@ export function useVideoExport(opts: {
     player.seek(0);
     renderFrame(exportCtx, projectRef.current, 0, w, h);
     if (project.music !== 'none') music.start(project.music);
+
     const stream = canvas.captureStream(30);
     if (project.music !== 'none') {
       music.audioStream?.getAudioTracks().forEach((t) => stream.addTrack(t));
     }
+
     let rec: MediaRecorder;
     try {
       rec = new MediaRecorder(stream, {
@@ -209,17 +223,21 @@ export function useVideoExport(opts: {
     } catch {
       rec = new MediaRecorder(stream);
     }
+
     const chunks: Blob[] = [];
     cancelRef.current = false;
+
     rec.ondataavailable = (e) => {
       if (e.data.size) chunks.push(e.data);
     };
+
     rec.onerror = () => {
       cancelRef.current = true;
       player.pause();
       setExportError('The browser stopped recording. Try Standard or High quality, then export again in Chrome or Edge.');
       if (rec.state !== 'inactive') rec.stop();
     };
+
     rec.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       restoreCanvasSize();
@@ -230,25 +248,34 @@ export function useVideoExport(opts: {
         else void finishExport(chunks, rec.mimeType || mime);
       }
     };
+
     recorderRef.current = rec;
     rec.start(250);
+
     window.setTimeout(() => {
       if (!cancelRef.current && !document.hidden) player.play();
     }, 120);
   }, [
     project,
-    exporting,
-    preferWebCodecs,
-    startWebCodecsExport,
-    canvasRef,
+    player,
     mediaRecorderSupported,
     isDesktop,
     setRightTab,
     setMobileTab,
-    player,
+    canvasRef,
     mime,
     finishExport,
+    projectRef,
   ]);
+
+  const startExport = useCallback(async () => {
+    if (!project.scenes.length || exporting) return;
+    if (preferWebCodecs) {
+      void startWebCodecsExport();
+      return;
+    }
+    await startRealtimeExport();
+  }, [project.scenes.length, exporting, preferWebCodecs, startWebCodecsExport, startRealtimeExport]);
 
   const cancelExport = useCallback(() => {
     cancelRef.current = true;
@@ -256,9 +283,11 @@ export function useVideoExport(opts: {
     exportAbortRef.current = null;
     player.pause();
     player.seek(0);
+
     const rec = recorderRef.current;
     if (rec && rec.state !== 'inactive') rec.stop();
     else setExporting(false);
+
     setWebcodecsProgress(null);
   }, [player]);
 
@@ -267,8 +296,7 @@ export function useVideoExport(opts: {
     exportError,
     webcodecsProgress,
     preferWebCodecs,
-    supported: mediaRecorderSupported || preferWebCodecs,
-    mime: preferWebCodecs ? 'video/webm;codecs=vp9' : mime,
+    supported: mediaRecorderSupported || canUseWebCodecsExport(),
     startExport,
     cancelExport,
     recorderRef,
