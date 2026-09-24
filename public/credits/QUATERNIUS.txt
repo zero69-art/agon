@@ -1,0 +1,18 @@
+Quaternius assets used by Agon
+================================
+
+Human character:
+- Universal Base Characters — Standard Free
+- Author: Quaternius
+- License: CC0 1.0
+- Official source: https://quaternius.com/packs/universalbasecharacters.html
+- Runtime copy used by Agon: https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/main/public/assets/vendor/quaternius/night-striker.glb
+
+Animation library:
+- Universal Animation Library — Standard Free
+- Author: Quaternius
+- License: CC0 1.0
+- Official source: https://quaternius.com/packs/universalanimationlibrary.html
+- Runtime copy used by Agon: https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/main/public/assets/vendor/quaternius/universal-animation-library.glb
+
+Agon keeps a procedural fallback so scenes still render when the remote assets are unavailable.
