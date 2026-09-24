@@ -2,6 +2,8 @@ import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefO
 import fixWebmDuration from 'fix-webm-duration';
 import { music } from './music';
 import { totalDuration } from './timeline';
+import { canvasSize, type Project } from './types';
+import { ensureThreeDirectorReady, renderFrame } from './renderer';
 import { slugify, uid } from './rng';
 import type { ExportedClip, Project } from './types';
 import type { Player } from './player';
@@ -158,9 +160,40 @@ export function useVideoExport(opts: {
       setExporting(false);
       return;
     }
+
+    const { w, h } = canvasSize(project.aspect, project.quality);
+    const originalWidth = canvas.width;
+    const originalHeight = canvas.height;
+    const restoreCanvasSize = () => {
+      if (canvas.width === originalWidth && canvas.height === originalHeight) return;
+      canvas.width = originalWidth;
+      canvas.height = originalHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) renderFrame(ctx, projectRef.current, player.time, originalWidth, originalHeight);
+    };
+
+    const threeReady = await ensureThreeDirectorReady(project.scenes.length, w, h);
+    if (!threeReady) {
+      restoreCanvasSize();
+      setExportError('3D renderer could not start in this browser. Try Chrome or Edge with hardware acceleration enabled.');
+      setExporting(false);
+      return;
+    }
+
+    canvas.width = w;
+    canvas.height = h;
+    const exportCtx = canvas.getContext('2d');
+    if (!exportCtx) {
+      restoreCanvasSize();
+      setExportError('Could not prepare the export canvas.');
+      setExporting(false);
+      return;
+    }
+
     player.pause();
     player.setLoop(false);
     player.seek(0);
+    renderFrame(exportCtx, projectRef.current, 0, w, h);
     if (project.music !== 'none') music.start(project.music);
     const stream = canvas.captureStream(30);
     if (project.music !== 'none') {
@@ -189,6 +222,7 @@ export function useVideoExport(opts: {
     };
     rec.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
+      restoreCanvasSize();
       recorderRef.current = null;
       setExporting(false);
       if (!cancelRef.current) {
