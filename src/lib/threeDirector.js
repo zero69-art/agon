@@ -325,11 +325,27 @@ function findBone(root, names) {
   return match;
 }
 
-function makeKayKitActor(index) {
-  const entry = runtimeAssets.get('kaykit-crew');
+function selectKayKitRuntimeId(label, index) {
+  const text = String(label || '').toLowerCase();
+  const matches = [
+    ['kaykit-archer', /\b(archer|ranger|hunter|scout)\b/],
+    ['kaykit-herald', /\b(wizard|mage|sorcerer|necromancer|priest|herald)\b/],
+    ['kaykit-lancer', /\b(knight|lancer|warrior|soldier|guard|fighter)\b/],
+    ['kaykit-wisp', /\b(wisp|ghost|spirit|skeleton|undead|minion)\b/],
+    ['kaykit-warden', /\b(hero|rogue|warden|thief|adventurer|pirate)\b/],
+  ];
+  const hit = matches.find(([, re]) => re.test(text));
+  if (hit) return hit[0];
+  const fallback = ['kaykit-crew', 'kaykit-warden', 'kaykit-lancer', 'kaykit-archer', 'kaykit-herald', 'kaykit-wisp'];
+  return fallback[index % fallback.length];
+}
+
+function makeKayKitActor(label, index) {
+  const runtimeId = selectKayKitRuntimeId(label, index);
+  const entry = runtimeAssets.get(runtimeId);
   if (!entry?.scene) return null;
   const root = new THREE.Group();
-  root.name = 'kaykit-crew-' + index;
+  root.name = runtimeId + '-actor-' + index;
   const model = normalizeExternalModel(THREE, entry.scene, 3);
   root.add(model);
   const mixer = new THREE.AnimationMixer(model);
@@ -479,6 +495,7 @@ function normalizeExternalModel(THREE, source, targetSize = 14) {
     if (!node.isMesh) return;
     node.castShadow = true;
     node.receiveShadow = true;
+    node.userData.sharedAsset = true;
   });
   return model;
 }
@@ -582,7 +599,7 @@ function addEnvironment(THREE, scene, motif, paletteIndex, explicitEnvironment) 
 
 function disposeObject3D(root) {
   root.traverse((node) => {
-    if (!node.isMesh) return;
+    if (!node.isMesh || node.userData?.sharedAsset) return;
     node.geometry?.dispose?.();
     const materials = Array.isArray(node.material) ? node.material : [node.material];
     materials.forEach((material) => material?.dispose?.());
@@ -703,11 +720,11 @@ export async function createThreeDirector(host, sceneCount = 1) {
     const requestedLabels = [requested[0], requested[1]];
     const makeSceneActor = (species, index, label) => {
       const useKayKit = assetMode === 'kaykit' ||
-        (assetMode === 'auto' && /\b(knight|mage|wizard|ranger|rogue|barbarian|druid|engineer|adventurer)\b/i.test(String(label || '')));
+        (assetMode === 'auto' && /\b(knight|mage|wizard|ranger|rogue|barbarian|druid|engineer|adventurer|hero|pirate|thief|archer|hunter|scout|skeleton|wisp|ghost|spirit|undead|minion|warrior|fighter|soldier|guard)\b/i.test(String(label || '')));
       const useQuaternius = assetMode !== 'procedural' && !useKayKit &&
         (assetMode === 'quaternius' || (assetMode === 'auto' && (species === 'human' || isQuaterniusCharacterLabel(label))));
       if (useKayKit) {
-        const imported = makeKayKitActor(index);
+        const imported = makeKayKitActor(label, index);
         if (imported) return imported;
       }
       if (useQuaternius) {
