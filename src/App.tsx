@@ -129,7 +129,7 @@ export default function App() {
           }
           rec.stop();
         }
-      }, 400);
+      }, 120);
     }
   }, [recorderRef]);
 
@@ -176,7 +176,16 @@ export default function App() {
           </section>
 
           <aside className={`min-h-0 overflow-y-auto border-l border-line bg-surface/35 ${lockClass}`}>
-            <SimpleControls project={project} onChange={update} onWpm={setWpm} onExport={exportVideo} exporting={exporting} />
+            <SimpleControls
+            project={project}
+            onChange={update}
+            onWpm={setWpm}
+            onExport={exportVideo}
+            onCancelExport={videoExport.cancelExport}
+            exportError={videoExport.exportError}
+            supported={videoExport.supported}
+            exporting={exporting}
+          />
           </aside>
         </main>
       </div>
