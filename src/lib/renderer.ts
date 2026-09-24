@@ -173,6 +173,7 @@ export function renderFrame(ctx: Ctx, project: Project, time: number, w: number,
   const hit = itemAt(tl, t)!;
   const { item, i, local } = hit;
   const trans = project.transition;
+  const cachedPreviousFrame = last3DFrame;
 
   if (item.kind === 'scene' && item.scene) {
     const fadeDuration = Math.min(0.42, Math.max(0.18, item.scene.duration * 0.12));
