@@ -857,15 +857,19 @@ export async function createThreeDirector(host, sceneCount = 1) {
     scene3d.add(backdrop);
   }
 
-  function animateActor(actor, actorIndex, action, local, globalTime, speakingIndex, emotion) {
+  function animateActor(actor, actorIndex, action, local, globalTime, speakingIndex, emotion, currentSceneDuration) {
     const u = actor.userData;
     const speed = action === 'run' ? 8.5 : action === 'walk' ? 5.0 : action === 'dance' ? 4.5 : action === 'fight' ? 7.5 : 2.4;
     const phase = globalTime * speed + u.phase;
     const speaking = speakingIndex === actorIndex;
     const stride = action === 'run' ? 0.65 : action === 'walk' ? 0.4 : 0.16;
+    const jumpPhase = action === 'jump'
+      ? clamp(local / Math.max(0.001, currentSceneDuration ?? 1), 0, 1)
+      : 0;
     const bob = action === 'jump'
-      ? Math.max(0, Math.sin(local * Math.PI * 2)) * 0.9
+      ? Math.sin(jumpPhase * Math.PI) * 0.9
       : Math.abs(Math.sin(phase)) * 0.07;
+    let poseY = 0;
 
     if (action === 'walk' || action === 'run') {
       u.legL.rotation.x = Math.sin(phase) * stride;
@@ -895,13 +899,13 @@ export async function createThreeDirector(host, sceneCount = 1) {
     } else if (action === 'kneel') {
       u.legL.rotation.x = -0.8;
       u.legR.rotation.x = 0.65;
-      actor.position.y = 0.0;
+      poseY = -0.02;
     } else if (action === 'sit') {
       u.legL.rotation.x = -1.05;
       u.legR.rotation.x = -1.05;
-      actor.position.y = -0.1;
+      poseY = -0.1;
     } else if (action === 'look') {
-      u.head.rotation.y += Math.sin(globalTime * 1.2 + u.phase) * 0.25;
+      // Head turn is applied below so it is not overwritten by the neutral look target.
     } else if (action === 'talk') {
       u.armL.rotation.z = Math.sin(globalTime * 3.5 + u.phase) * 0.12;
       u.armR.rotation.z = -Math.sin(globalTime * 3.5 + u.phase) * 0.12;
@@ -914,11 +918,14 @@ export async function createThreeDirector(host, sceneCount = 1) {
       u.armR.rotation.z = -0.05;
     }
 
-    actor.position.y = bob;
+    actor.position.y = poseY + bob;
     u.rig.rotation.z = Math.sin(globalTime * 1.5 + u.phase) * 0.018;
 
     const look = speaking ? 0.16 : actorIndex === 0 ? -0.08 : 0.08;
-    u.head.rotation.y = look + Math.sin(globalTime * 0.8 + u.phase) * 0.05;
+    const actionLook = action === 'look'
+      ? Math.sin(globalTime * 1.2 + u.phase) * 0.28
+      : 0;
+    u.head.rotation.y = look + actionLook + Math.sin(globalTime * 0.8 + u.phase) * 0.05;
     u.head.rotation.x = Math.sin(globalTime * 0.9 + u.phase) * 0.025;
 
     const blink = Math.sin(globalTime * 1.75 + u.phase);
@@ -965,7 +972,9 @@ export async function createThreeDirector(host, sceneCount = 1) {
       ? characterLabels.findIndex((label) => String(label).toLowerCase() === speakingCharacter)
       : dialogue.speaker
         ? (dialogue.speaker.toLowerCase().includes('2') ? 1 : 0)
-        : -1;
+        : action === 'talk'
+          ? 0
+          : -1;
 
     actors.forEach((actor, index) => {
       const startX = index === 0 ? -1.1 : 1.1;
@@ -974,7 +983,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
       else actor.position.x = startX;
       if (actor.userData.kaykit) animateKayKitActor(actor, index, action, globalTime, speakingIndex, emotion);
       else if (actor.userData.quaternius) animateQuaterniusActor(actor, index, action, globalTime, speakingIndex, emotion);
-      else animateActor(actor, index, action, local, globalTime, speakingIndex, emotion);
+      else animateActor(actor, index, action, local, globalTime, speakingIndex, emotion, currentScene?.duration);
     });
 
     const progress = currentScene?.duration ? clamp(local / currentScene.duration, 0, 1) : 0;
