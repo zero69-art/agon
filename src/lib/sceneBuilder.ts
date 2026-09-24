@@ -1,6 +1,6 @@
 import { PALETTES } from './palettes';
 import { hashString, mulberry32, pick, uid } from './rng';
-import type { ActionKind, BackgroundKind, CameraMotion, MotifKind, Project, Scene, SceneAssetMode, TextAnim } from './types';
+import type { ActionKind, BackgroundKind, CameraMotion, EnvironmentAssetMode, MotifKind, Project, Scene, SceneAssetMode, TextAnim } from './types';
 
 const MAX_WORDS = 22;
 const HARD_MAX = 28;
@@ -127,8 +127,19 @@ function inferAction(text: string): ActionKind {
 
 function normalizeAsset(value: string): SceneAssetMode | undefined {
   const v = value.trim().toLowerCase();
-  if (v === 'quaternius' || v === 'human' || v === 'free') return 'quaternius';
+  if (v === 'quaternius' || v === 'human') return 'quaternius';
+  if (v === 'kaykit' || v === 'kay' || v === 'adventurer') return 'kaykit';
   if (v === 'procedural' || v === 'generated') return 'procedural';
+  if (v === 'auto' || v === 'free') return 'auto';
+  return undefined;
+}
+
+function normalizeEnvironment(value: string): EnvironmentAssetMode | undefined {
+  const v = value.trim().toLowerCase().replace(/_/g, '-').replace(/s+/g, '-');
+  if (v === 'kaykit-forest' || v === 'forest') return 'kaykit-forest';
+  if (v === 'kenney-nature' || v === 'nature' || v === 'mountains') return 'kenney-nature';
+  if (v === 'kaykit-space' || v === 'space' || v === 'sci-fi' || v === 'station') return 'kaykit-space';
+  if (v === 'procedural') return 'procedural';
   if (v === 'auto') return 'auto';
   return undefined;
 }
@@ -157,6 +168,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
   const characters = inferCharacters(text);
   const emotion = directive(text, 'EMOTION');
   const asset = normalizeAsset(directive(text, 'ASSET')) ?? 'auto';
+  const environmentAsset = normalizeEnvironment(directive(text, 'ENVIRONMENT')) ?? 'auto';
   const cameraCue = directive(text, 'CAMERA').toLowerCase().trim();
   const camera = (CAMERAS.includes(cameraCue as CameraMotion) ? cameraCue : CAMERAS[index % CAMERAS.length]) as CameraMotion;
   const cleanText = cleanDirectorCues(text);
@@ -174,6 +186,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
     camera,
     dimension: '3d',
     asset,
+    environmentAsset,
     action,
     characters: characters.length ? characters : undefined,
     emotion: emotion || undefined,
