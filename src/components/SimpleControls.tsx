@@ -6,10 +6,22 @@ interface Props {
   onChange: (patch: Partial<Project>) => void;
   onWpm: (wpm: number) => void;
   onExport: () => void;
+  onCancelExport?: () => void;
+  exportError?: string | null;
+  supported?: boolean;
   exporting: boolean;
 }
 
-export function SimpleControls({ project, onChange, onWpm, onExport, exporting }: Props) {
+export function SimpleControls({
+  project,
+  onChange,
+  onWpm,
+  onExport,
+  onCancelExport,
+  exportError,
+  supported = true,
+  exporting,
+}: Props) {
   const musicChoices = MUSIC_MOODS.filter((m) => ['none', 'dreamy', 'cinematic', 'upbeat', 'ambient'].includes(m.id));
   const cameraChoices = CAMERA_MOTIONS.filter((c) => ['still', 'push', 'drift', 'orbit'].includes(c.id));
 
@@ -65,6 +77,19 @@ export function SimpleControls({ project, onChange, onWpm, onExport, exporting }
         <Slider label="Reading pace" value={project.wpm} min={110} max={220} step={5} onChange={onWpm} display={`${project.wpm} wpm`} />
       </Section>
 
+      <Section title="Quality">
+        <div className="grid grid-cols-3 gap-1.5">
+          {(['standard', 'high', 'ultra'] as const).map((quality) => (
+            <Chip key={quality} active={project.quality === quality} onClick={() => onChange({ quality })} className="!px-2">
+              {quality}
+            </Chip>
+          ))}
+        </div>
+        <div className="text-[10px] leading-relaxed text-muted">
+          Higher quality uses more GPU and export bandwidth.
+        </div>
+      </Section>
+
       <Section title="Export">
         <div className="rounded-xl border border-line bg-surface-2 px-3 py-2.5">
           <div className="text-[13px] font-medium text-cream">3D movie</div>
@@ -72,9 +97,25 @@ export function SimpleControls({ project, onChange, onWpm, onExport, exporting }
             Characters, environments and animation are selected from your story.
           </div>
         </div>
-        <Btn variant="primary" className="w-full !py-3" onClick={onExport} disabled={exporting || !project.scenes.length}>
-          {exporting ? 'Rendering…' : 'Export video'}
-        </Btn>
+        {!supported && (
+          <div className="rounded-xl border border-red-400/20 bg-red-400/5 px-3 py-2 text-[11px] leading-relaxed text-red-200">
+            This browser cannot record video from the current renderer. Use the latest Chrome or Edge.
+          </div>
+        )}
+        {exportError && (
+          <div className="rounded-xl border border-red-400/20 bg-red-400/5 px-3 py-2 text-[11px] leading-relaxed text-red-200">
+            {exportError}
+          </div>
+        )}
+        {exporting ? (
+          <Btn variant="secondary" className="w-full !py-3" onClick={onCancelExport}>
+            Stop render
+          </Btn>
+        ) : (
+          <Btn variant="primary" className="w-full !py-3" onClick={onExport} disabled={!supported || !project.scenes.length}>
+            Export video
+          </Btn>
+        )}
       </Section>
     </div>
   );
