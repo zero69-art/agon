@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Lock, Plus, Shuffle, Trash2, Unlock } from 'lucide-react';
-import { BACKGROUNDS, CAMERA_MOTIONS, MOTIFS, TEXT_ANIMS, type ActionKind, type Project, type Scene } from '../lib/types';
+import { BACKGROUNDS, CAMERA_MOTIONS, MOTIFS, TEXT_ANIMS, type ActionKind, type Project, type Scene, type SceneAssetMode } from '../lib/types';
 import { computeDuration } from '../lib/sceneBuilder';
 import { Btn, Chip, IconBtn, PaletteSwatches, Section, Slider } from './ui';
 
@@ -173,6 +173,24 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
                 <span className={`block text-[10px] ${scene.dimension === '3d' ? 'text-ink/60' : 'text-muted'}`}>Perspective world</span>
               </Chip>
             </div>
+          </div>
+          <div>
+            <div className="mb-1.5 text-xs text-muted">Character asset</div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {([
+                ['auto', 'Auto', 'Human → Quaternius'],
+                ['quaternius', 'Quaternius', 'CC0 human rig'],
+                ['procedural', 'Procedural', 'Built-in fallback'],
+              ] as [SceneAssetMode, string, string][]).map(([id, label, hint]) => (
+                <Chip key={id} active={(scene.asset ?? 'auto') === id} onClick={() => onChange(scene.id, { asset: id })} className="!text-left">
+                  <span className="block">{label}</span>
+                  <span className={`block text-[9px] ${(scene.asset ?? 'auto') === id ? 'text-ink/60' : 'text-muted'}`}>{hint}</span>
+                </Chip>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] leading-relaxed text-muted">
+              Quaternius assets are used for human characters and their animation library is CC0.
+            </p>
           </div>
           <div>
             <div className="mb-1.5 text-xs text-muted">Palette</div>
