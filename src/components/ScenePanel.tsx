@@ -200,7 +200,9 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
                 ['auto', 'Auto', 'Match the scene'],
                 ['kaykit-forest', 'KayKit Forest', 'CC0 nature'],
                 ['kenney-nature', 'Kenney Nature', 'CC0 scenery'],
-                ['kaykit-space', 'KayKit Space', 'CC0 sci-fi'],
+                ['kaykit-city', 'KayKit City', 'CC0 city kit'],
+                ['kaykit-dungeon', 'KayKit Dungeon', 'CC0 dungeon kit'],
+                ['kaykit-space', 'KayKit Space', 'CC0 sci-fi kit'],
                 ['procedural', 'Procedural', 'Built-in fallback'],
               ] as [EnvironmentAssetMode, string, string][]).map(([id, label, hint]) => (
                 <Chip key={id} active={(scene.environmentAsset ?? 'auto') === id} onClick={() => onChange(scene.id, { environmentAsset: id })} className="!text-left">
