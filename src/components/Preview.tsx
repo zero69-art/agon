@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Maximize2, Mic, MicOff, Pause, Play, Repeat, RotateCcw } from 'lucide-react';
-import { renderFrame } from '../lib/renderer';
+import { ensureThreeDirectorReady, renderFrame } from '../lib/renderer';
 import { music } from '../lib/music';
 import { getTimeline, itemAt, totalDuration } from '../lib/timeline';
 import { canvasSize, type Project } from '../lib/types';
@@ -22,6 +22,8 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   const dirtyRef = useRef(true);
   const onEndedRef = useRef(onEnded);
   const lastSpoken = useRef<string | null>(null);
+  const has3D = project.scenes.some((scene) => scene.dimension === '3d');
+  const [renderReady, setRenderReady] = useState(!has3D);
   usePlayer(player);
 
   const { w, h } = canvasSize(project.aspect, project.quality);
@@ -31,6 +33,35 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
     projectRef.current = project;
     dirtyRef.current = true;
   }, [project]);
+
+  useEffect(() => {
+    const needs3D = project.scenes.some((scene) => scene.dimension === '3d');
+    if (!needs3D) {
+      setRenderReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    setRenderReady(false);
+
+    const { w: outputWidth, h: outputHeight } = canvasSize(project.aspect, project.quality);
+    const preload = (window as Window & {
+      __AGON_PRELOAD_THREE_ASSETS__?: (nextProject?: Project) => Promise<unknown>;
+    }).__AGON_PRELOAD_THREE_ASSETS__;
+
+    void Promise.allSettled([
+      ensureThreeDirectorReady(project.scenes.length, outputWidth, outputHeight),
+      typeof preload === 'function' ? preload(project) : Promise.resolve(),
+    ]).then(([directorResult]) => {
+      if (cancelled) return;
+      setRenderReady(directorResult.status === 'fulfilled' && directorResult.value === true);
+      dirtyRef.current = true;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [project.aspect, project.quality, project.scenes]);
 
   useEffect(() => {
     onEndedRef.current = onEnded;
@@ -155,6 +186,13 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> rec
           </div>
         )}
+        {has3D && !renderReady && !exporting && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25 backdrop-blur-[2px]">
+            <div className="rounded-full border border-white/10 bg-black/60 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-cream/85">
+              Preparing 3D scene…
+            </div>
+          </div>
+        )}
         <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-cream/70 backdrop-blur">
           {w}×{h}
         </div>
@@ -163,7 +201,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface px-3 py-2.5">
         <button
           type="button"
-          disabled={disabled || !project.scenes.length}
+          disabled={disabled || !project.scenes.length || !renderReady}
           onClick={() => {
             if (player.time >= total && !player.playing) player.seek(0);
             player.toggle();
