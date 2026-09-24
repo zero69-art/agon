@@ -11,6 +11,7 @@ export interface RuntimeAsset {
 }
 
 const KAYKIT_MIRROR = 'https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets';
+const KAYKIT_CHARACTER_MIRROR = 'https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters';
 
 export const RUNTIME_ASSETS: Record<string, RuntimeAsset> = {
   'kaykit-crew': {
@@ -21,6 +22,51 @@ export const RUNTIME_ASSETS: Record<string, RuntimeAsset> = {
     sourceUrl: 'https://kaylousberg.itch.io/kaykit-character-animations',
     license: 'CC0 1.0',
     tags: ['human', 'character', 'humanoid', 'animation', 'adventurer', 'worker'],
+  },
+  'kaykit-warden': {
+    id: 'kaykit-warden',
+    label: 'KayKit Warden',
+    kind: 'character',
+    modelUrl: KAYKIT_CHARACTER_MIRROR + '/warden.glb',
+    sourceUrl: 'https://kaylousberg.itch.io/kaykit-adventurers',
+    license: 'CC0 1.0',
+    tags: ['hero', 'rogue', 'warden', 'thief', 'adventurer', 'pirate'],
+  },
+  'kaykit-lancer': {
+    id: 'kaykit-lancer',
+    label: 'KayKit Lancer',
+    kind: 'character',
+    modelUrl: KAYKIT_CHARACTER_MIRROR + '/lancer.glb',
+    sourceUrl: 'https://kaylousberg.itch.io/kaykit-skeletons',
+    license: 'CC0 1.0',
+    tags: ['knight', 'lancer', 'warrior', 'soldier', 'guard', 'fighter'],
+  },
+  'kaykit-archer': {
+    id: 'kaykit-archer',
+    label: 'KayKit Archer',
+    kind: 'character',
+    modelUrl: KAYKIT_CHARACTER_MIRROR + '/archer.glb',
+    sourceUrl: 'https://kaylousberg.itch.io/kaykit-skeletons',
+    license: 'CC0 1.0',
+    tags: ['archer', 'ranger', 'hunter', 'scout'],
+  },
+  'kaykit-herald': {
+    id: 'kaykit-herald',
+    label: 'KayKit Herald',
+    kind: 'character',
+    modelUrl: KAYKIT_CHARACTER_MIRROR + '/herald.glb',
+    sourceUrl: 'https://kaylousberg.itch.io/kaykit-skeletons',
+    license: 'CC0 1.0',
+    tags: ['wizard', 'mage', 'sorcerer', 'necromancer', 'priest', 'herald'],
+  },
+  'kaykit-wisp': {
+    id: 'kaykit-wisp',
+    label: 'KayKit Wisp',
+    kind: 'character',
+    modelUrl: KAYKIT_CHARACTER_MIRROR + '/wisp.glb',
+    sourceUrl: 'https://kaylousberg.itch.io/kaykit-skeletons',
+    license: 'CC0 1.0',
+    tags: ['wisp', 'ghost', 'spirit', 'skeleton', 'undead', 'minion'],
   },
   'kaykit-forest': {
     id: 'kaykit-forest',
