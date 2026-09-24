@@ -59,21 +59,21 @@ type ThreeDirectorBridge = {
 };
 
 let threeDirector: ThreeDirectorBridge | null = null;
-let threeDirectorPromise: Promise<void> | null = null;
+let threeDirectorPromise: Promise<ThreeDirectorBridge | null> | null = null;
 let threeHost: HTMLDivElement | null = null;
 
-function ensureThreeDirector(sceneCount: number, w: number, h: number): void {
-  if (typeof window === 'undefined') return;
+function ensureThreeDirector(sceneCount: number, w: number, h: number): Promise<ThreeDirectorBridge | null> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
   if (threeDirector) {
     threeDirector.setOutputSize?.({ w, h });
-    return;
+    return Promise.resolve(threeDirector);
   }
-  if (threeDirectorPromise) return;
+  if (threeDirectorPromise) return threeDirectorPromise;
 
   const create = (window as Window & {
     __AGON_CREATE_THREE_DIRECTOR__?: (host: HTMLDivElement, sceneCount: number) => Promise<ThreeDirectorBridge>;
   }).__AGON_CREATE_THREE_DIRECTOR__;
-  if (typeof create !== 'function') return;
+  if (typeof create !== 'function') return Promise.resolve(null);
 
   threeHost = document.createElement('div');
   threeHost.setAttribute('aria-hidden', 'true');
@@ -90,13 +90,23 @@ function ensureThreeDirector(sceneCount: number, w: number, h: number): void {
     .then((director) => {
       threeDirector = director;
       director.setOutputSize?.({ w, h });
+      window.dispatchEvent(new Event('agon-three-director-ready'));
+      return director;
     })
     .catch(() => {
       threeDirector = null;
+      window.dispatchEvent(new Event('agon-three-director-error'));
+      return null;
     })
     .finally(() => {
       threeDirectorPromise = null;
     });
+
+  return threeDirectorPromise;
+}
+
+export async function ensureThreeDirectorReady(sceneCount: number, w: number, h: number): Promise<boolean> {
+  return Boolean(await ensureThreeDirector(sceneCount, w, h));
 }
 
 function renderThreeToCanvas(
@@ -111,7 +121,10 @@ function renderThreeToCanvas(
 ): boolean {
   if (scene.dimension !== '3d') return false;
   ensureThreeDirector(sceneCount, w, h);
-  if (!threeDirector) return false;
+  if (!threeDirector) {
+    void ensureThreeDirector(sceneCount, w, h);
+    return false;
+  }
   try {
     threeDirector.setOutputSize?.({ w, h });
     threeDirector.render(project, scene, local, globalTime);
