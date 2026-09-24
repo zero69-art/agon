@@ -42,7 +42,7 @@ export default function App() {
     setClips,
   });
 
-  const { exporting, exportError, startExport, recorderRef } = videoExport;
+  const { exporting, exportError, startExport, cancelExport, recorderRef } = videoExport;
 
   useEffect(() => {
     const id = window.setTimeout(() => saveCurrent(project), 400);
@@ -62,13 +62,13 @@ export default function App() {
 
   useEffect(() => {
     const onVis = () => {
-      if (document.hidden && exporting && !player.playing && !videoExport.preferWebCodecs) {
-        player.pause();
+      if (document.hidden && exporting && !videoExport.preferWebCodecs) {
+        cancelExport();
       }
     };
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
-  }, [player, exporting, videoExport.preferWebCodecs]);
+  }, [cancelExport, exporting, videoExport.preferWebCodecs]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -211,7 +211,16 @@ export default function App() {
         <Timeline project={project} player={player} selectedId={selectedId} onSelect={setSelectedId} disabled={exporting} />
 
         <section className={`rounded-2xl border border-line bg-surface/55 ${lockClass}`}>
-          <SimpleControls project={project} onChange={update} onWpm={setWpm} onExport={exportVideo} exporting={exporting} exportError={exportError} />
+          <SimpleControls
+            project={project}
+            onChange={update}
+            onWpm={setWpm}
+            onExport={exportVideo}
+            onCancelExport={cancelExport}
+            exportError={exportError}
+            supported={videoExport.supported}
+            exporting={exporting}
+          />
         </section>
       </main>
     </div>
