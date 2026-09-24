@@ -399,6 +399,12 @@ function makeQuaterniusActor(index) {
   model.position.y -= box.min.y * scale;
   model.traverse((node) => {
     if (!node.isMesh) return;
+    node.geometry = node.geometry?.clone?.() || node.geometry;
+    if (Array.isArray(node.material)) {
+      node.material = node.material.map((material) => material?.clone?.() || material);
+    } else if (node.material?.clone) {
+      node.material = node.material.clone();
+    }
     node.castShadow = true;
     node.receiveShadow = true;
   });
