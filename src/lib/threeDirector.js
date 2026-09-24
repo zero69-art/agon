@@ -1,4 +1,7 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { isQuaterniusCharacterLabel, QUATERNIUS_ASSETS, QUATERNIUS_CLIP_CANDIDATES } from './quaternius.ts';
 
 const paletteSets = [
   ['#101726', '#64d8ff', '#ff8a65', '#ece7d5'],
@@ -25,6 +28,31 @@ function ease(v) {
 
 function words(text) {
   return text.toLowerCase().split(/\s+/);
+}
+
+let quaterniusAssetsPromise = null;
+let quaterniusAssets = null;
+
+async function loadQuaterniusAssets() {
+  if (quaterniusAssets) return quaterniusAssets;
+  if (quaterniusAssetsPromise) return quaterniusAssetsPromise;
+  const loader = new GLTFLoader();
+  quaterniusAssetsPromise = Promise.all([
+    loader.loadAsync(QUATERNIUS_ASSETS.hero.modelUrl),
+    loader.loadAsync(QUATERNIUS_ASSETS.animations.modelUrl),
+  ])
+    .then(([hero, animationLibrary]) => {
+      quaterniusAssets = {
+        hero: hero.scene,
+        clips: animationLibrary.animations || [],
+      };
+      return quaterniusAssets;
+    })
+    .catch((error) => {
+      quaterniusAssetsPromise = null;
+      throw error;
+    });
+  return quaterniusAssetsPromise;
 }
 
 function inferSpecies(text, fallback) {
@@ -246,6 +274,87 @@ function makeActor(THREE, species, index, paletteIndex) {
   return root;
 }
 
+function pickQuaterniusClip(action) {
+  const clips = quaterniusAssets?.clips || [];
+  const candidates = QUATERNIUS_CLIP_CANDIDATES[action] || QUATERNIUS_CLIP_CANDIDATES.idle;
+  const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const names = candidates.map(normalize);
+  return clips.find((clip) => {
+    const n = normalize(clip.name);
+    return names.some((candidate) => n === candidate || n.includes(candidate) || candidate.includes(n));
+  }) || clips[0] || null;
+}
+
+function findBone(root, names) {
+  let match = null;
+  const wanted = names.map((value) => String(value).toLowerCase());
+  root.traverse((node) => {
+    if (match || !node.isBone) return;
+    const lower = node.name.toLowerCase();
+    if (wanted.some((name) => lower.includes(name))) match = node;
+  });
+  return match;
+}
+
+function makeQuaterniusActor(index) {
+  if (!quaterniusAssets?.hero) return null;
+  const root = new THREE.Group();
+  root.name = 'quaternius-human-' + index;
+  const model = SkeletonUtils.clone(quaterniusAssets.hero);
+  const box = new THREE.Box3().setFromObject(model);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+  const height = Math.max(0.001, size.y);
+  const scale = 3 / height;
+  model.scale.setScalar(scale);
+  model.position.x -= center.x * scale;
+  model.position.z -= center.z * scale;
+  model.position.y -= box.min.y * scale;
+  model.traverse((node) => {
+    if (!node.isMesh) return;
+    node.castShadow = true;
+    node.receiveShadow = true;
+  });
+  root.add(model);
+  const mixer = new THREE.AnimationMixer(model);
+  root.userData = {
+    quaternius: true,
+    model,
+    mixer,
+    activeAction: null,
+    activeClip: '',
+    phase: index * 0.65,
+    headBone: findBone(model, ['head', 'neck', 'mixamorighead']),
+  };
+  return root;
+}
+
+function animateQuaterniusActor(actor, actorIndex, action, globalTime, speakingIndex, emotion) {
+  const u = actor.userData;
+  const clip = pickQuaterniusClip(action);
+  if (clip) {
+    if (u.activeClip !== clip.name) {
+      if (u.activeAction) u.activeAction.stop();
+      const next = u.mixer.clipAction(clip);
+      next.reset();
+      next.setLoop(THREE.LoopRepeat, Infinity);
+      next.play();
+      u.activeAction = next;
+      u.activeClip = clip.name;
+    }
+    const duration = Math.max(0.001, clip.duration);
+    u.mixer.setTime(((globalTime + u.phase) % duration + duration) % duration);
+  }
+  const speaking = speakingIndex === actorIndex;
+  if (u.headBone) {
+    u.headBone.rotation.y = (speaking ? 0.14 : actorIndex === 0 ? -0.05 : 0.05) + Math.sin(globalTime * 1.1 + u.phase) * 0.025;
+    u.headBone.rotation.x = emotion === 'surprised' ? -0.04 : Math.sin(globalTime * 0.7 + u.phase) * 0.015;
+  }
+  actor.rotation.y = (actorIndex === 0 ? 0.12 : -0.15) + Math.sin(globalTime * 0.25 + u.phase) * 0.018;
+}
+
 function addEnvironment(THREE, scene, motif, paletteIndex) {
   const group = new THREE.Group();
   group.name = 'environment';
@@ -373,6 +482,15 @@ export async function createThreeDirector(host, sceneCount = 1) {
   let lastH = 0;
   let outputSize = null;
 
+  void loadQuaterniusAssets()
+    .then(() => {
+      currentSignature = '';
+      window.dispatchEvent(new Event('agon-three-assets-ready'));
+    })
+    .catch(() => {
+      window.dispatchEvent(new Event('agon-three-assets-error'));
+    });
+
   function resize() {
     const w = Math.max(320, outputSize?.w ?? host.clientWidth);
     const h = Math.max(180, outputSize?.h ?? host.clientHeight);
@@ -403,7 +521,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
   function rebuild(project, currentScene) {
     const motif = currentScene?.motif || 'none';
     const paletteIndex = currentScene?.palette || project?.basePalette || 0;
-    const signature = motif + ':' + paletteIndex + ':' + (currentScene?.id || '') + ':' + (currentScene?.text || '') + ':' + (currentScene?.action || '') + ':' + (currentScene?.emotion || '') + ':' + (currentScene?.speakingCharacter || '') + ':' + JSON.stringify(currentScene?.characters || []) + ':' + sceneCount;
+    const signature = motif + ':' + paletteIndex + ':' + (currentScene?.asset || 'auto') + ':' + (currentScene?.id || '') + ':' + (currentScene?.text || '') + ':' + (currentScene?.action || '') + ':' + (currentScene?.emotion || '') + ':' + (currentScene?.speakingCharacter || '') + ':' + JSON.stringify(currentScene?.characters || []) + ':' + sceneCount;
     if (signature === currentSignature) return;
     currentSignature = signature;
 
@@ -428,11 +546,24 @@ export async function createThreeDirector(host, sceneCount = 1) {
 
     const baseText = currentScene?.text || project?.script || '';
     const requested = Array.isArray(currentScene?.characters) ? currentScene.characters.filter(Boolean).slice(0, 2) : [];
-    const s0 = requested[0] ? speciesFromCharacter(requested[0], motif === 'space' ? 'robot' : 'fox') : inferSpecies(baseText, motif === 'space' ? 'robot' : 'fox');
-    const s1 = requested[1] ? speciesFromCharacter(requested[1], s0 === 'fox' ? 'owl' : 'human') : inferSpecies(baseText, s0 === 'fox' ? 'owl' : 'human');
+    const s0 = requested[0] ? speciesFromCharacter(requested[0], 'human') : inferSpecies(baseText, 'human');
+    const s1 = requested[1] ? speciesFromCharacter(requested[1], 'human') : inferSpecies(baseText, 'human');
+    const assetMode = currentScene?.asset || 'auto';
+    const requestedLabels = [requested[0], requested[1]];
+    const useQuaternius = (species, label) =>
+      assetMode !== 'procedural' &&
+      (assetMode === 'quaternius' || species === 'human' || isQuaterniusCharacterLabel(label));
+    const makeSceneActor = (species, index, label) => {
+      if (useQuaternius(species, label)) {
+        const imported = makeQuaterniusActor(index);
+        if (imported) return imported;
+      }
+      return makeActor(THREE, species, index, paletteIndex);
+    };
+
     actors = [
-      makeActor(THREE, s0, 0, paletteIndex),
-      makeActor(THREE, s1, 1, paletteIndex),
+      makeSceneActor(s0, 0, requestedLabels[0] || ''),
+      makeSceneActor(s1, 1, requestedLabels[1] || ''),
     ];
 
     actors[0].position.x = -1.1;
@@ -558,7 +689,8 @@ export async function createThreeDirector(host, sceneCount = 1) {
       if (action === 'run') actor.position.x = startX + Math.sin(globalTime * 0.8 + index) * 0.65;
       else if (action === 'walk') actor.position.x = startX + Math.sin(globalTime * 0.5 + index) * 0.35;
       else actor.position.x = startX;
-      animateActor(actor, index, action, local, globalTime, speakingIndex, emotion);
+      if (actor.userData.quaternius) animateQuaterniusActor(actor, index, action, globalTime, speakingIndex, emotion);
+      else animateActor(actor, index, action, local, globalTime, speakingIndex, emotion);
     });
 
     const progress = currentScene?.duration ? clamp(local / currentScene.duration, 0, 1) : 0;
@@ -618,5 +750,6 @@ export async function createThreeDirector(host, sceneCount = 1) {
 
 if (typeof window !== 'undefined') {
   window.__AGON_CREATE_THREE_DIRECTOR__ = createThreeDirector;
+  window.__AGON_PRELOAD_THREE_ASSETS__ = loadQuaterniusAssets;
   window.dispatchEvent(new Event('agon-three-director-ready'));
 }
