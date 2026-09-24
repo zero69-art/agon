@@ -190,7 +190,7 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
               ))}
             </div>
             <p className="mt-2 text-[10px] leading-relaxed text-muted">
-              Quaternius assets are used for human characters and their animation library is CC0.
+              Free CC0 packs are loaded automatically where available, with procedural fallback for every scene.
             </p>
           </div>
           <div>
