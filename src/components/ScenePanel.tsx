@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Lock, Plus, Shuffle, Trash2, Unlock } from 'lucide-react';
-import { BACKGROUNDS, CAMERA_MOTIONS, MOTIFS, TEXT_ANIMS, type ActionKind, type Project, type Scene, type SceneAssetMode } from '../lib/types';
+import { BACKGROUNDS, CAMERA_MOTIONS, MOTIFS, TEXT_ANIMS, type ActionKind, type EnvironmentAssetMode, type Project, type Scene, type SceneAssetMode } from '../lib/types';
 import { computeDuration } from '../lib/sceneBuilder';
 import { Btn, Chip, IconBtn, PaletteSwatches, Section, Slider } from './ui';
 
@@ -176,10 +176,11 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
           </div>
           <div>
             <div className="mb-1.5 text-xs text-muted">Character asset</div>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-2 gap-1.5">
               {([
-                ['auto', 'Auto', 'Human → Quaternius'],
+                ['auto', 'Auto', 'Best matching pack'],
                 ['quaternius', 'Quaternius', 'CC0 human rig'],
+                ['kaykit', 'KayKit', 'CC0 crew + clips'],
                 ['procedural', 'Procedural', 'Built-in fallback'],
               ] as [SceneAssetMode, string, string][]).map(([id, label, hint]) => (
                 <Chip key={id} active={(scene.asset ?? 'auto') === id} onClick={() => onChange(scene.id, { asset: id })} className="!text-left">
@@ -190,6 +191,26 @@ export function ScenePanel({ project, scene, onChange, onDelete, onMove, onAddAf
             </div>
             <p className="mt-2 text-[10px] leading-relaxed text-muted">
               Quaternius assets are used for human characters and their animation library is CC0.
+            </p>
+          </div>
+          <div>
+            <div className="mb-1.5 text-xs text-muted">Environment asset</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {([
+                ['auto', 'Auto', 'Match the scene'],
+                ['kaykit-forest', 'KayKit Forest', 'CC0 nature'],
+                ['kenney-nature', 'Kenney Nature', 'CC0 scenery'],
+                ['kaykit-space', 'KayKit Space', 'CC0 sci-fi'],
+                ['procedural', 'Procedural', 'Built-in fallback'],
+              ] as [EnvironmentAssetMode, string, string][]).map(([id, label, hint]) => (
+                <Chip key={id} active={(scene.environmentAsset ?? 'auto') === id} onClick={() => onChange(scene.id, { environmentAsset: id })} className="!text-left">
+                  <span className="block">{label}</span>
+                  <span className={`block text-[9px] ${(scene.environmentAsset ?? 'auto') === id ? 'text-ink/60' : 'text-muted'}`}>{hint}</span>
+                </Chip>
+              ))}
+            </div>
+            <p className="mt-2 text-[10px] leading-relaxed text-muted">
+              Real CC0 GLB scenery is used when available; procedural scenery remains the fallback.
             </p>
           </div>
           <div>
