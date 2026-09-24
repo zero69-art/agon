@@ -100,6 +100,21 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const preload = (window as Window & {
+      __AGON_PRELOAD_THREE_ASSETS__?: (project?: Project) => Promise<unknown>;
+    }).__AGON_PRELOAD_THREE_ASSETS__;
+    void (async () => {
+      await ensureThreeDirectorReady(project.scenes.length, w, h);
+      if (typeof preload === 'function') await preload(project);
+      if (!cancelled) dirtyRef.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [project.scenes.length, project.aspect, project.quality, w, h]);
+
+  useEffect(() => {
     const families = ['"Bricolage Grotesque"', '"Fraunces"', '"DM Mono"', '"Nunito"', '"Instrument Sans"'];
     Promise.all(families.map((f) => document.fonts.load(`700 40px ${f}`).catch(() => undefined))).then(() => {
       dirtyRef.current = true;
