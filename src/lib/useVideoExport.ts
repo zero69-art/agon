@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState, type Dispatch, type MutableRefO
 import fixWebmDuration from 'fix-webm-duration';
 import { music } from './music';
 import { totalDuration } from './timeline';
-import { canvasSize, type Project } from './types';
+import { canvasSize } from './types';
 import { ensureThreeDirectorReady, renderFrame } from './renderer';
 import { slugify, uid } from './rng';
 import type { ExportedClip, Project } from './types';
