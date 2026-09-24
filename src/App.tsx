@@ -186,7 +186,6 @@ export default function App() {
             supported={videoExport.supported}
             exporting={exporting}
             webcodecsProgress={webcodecsProgress}
-            webcodecsProgress={webcodecsProgress}
           />
           </aside>
         </main>
@@ -222,6 +221,7 @@ export default function App() {
             exportError={exportError}
             supported={videoExport.supported}
             exporting={exporting}
+            webcodecsProgress={webcodecsProgress}
           />
         </section>
       </main>
