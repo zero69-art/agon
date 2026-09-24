@@ -138,7 +138,10 @@ export function useVideoExport(opts: {
       return;
     }
     const canvas = canvasRef.current;
-    if (!canvas || !mediaRecorderSupported) return;
+    if (!canvas || !mediaRecorderSupported) {
+      setExportError('Video recording is unavailable in this browser. Use the latest Chrome or Edge.');
+      return;
+    }
     if (document.hidden) {
       setExportError('Bring this tab to the front, then start render. Hidden tabs are throttled and produce broken video.');
       setRightTab('export');
@@ -194,7 +197,7 @@ export function useVideoExport(opts: {
       }
     };
     recorderRef.current = rec;
-    rec.start(500);
+    rec.start(250);
     window.setTimeout(() => {
       if (!cancelRef.current && !document.hidden) player.play();
     }, 120);
