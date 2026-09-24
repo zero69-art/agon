@@ -10,6 +10,7 @@ interface Props {
   exportError?: string | null;
   supported?: boolean;
   exporting: boolean;
+  exportError?: string | null;
 }
 
 export function SimpleControls({
