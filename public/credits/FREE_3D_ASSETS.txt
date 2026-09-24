@@ -7,6 +7,36 @@ Runtime assets
   Official: https://kaylousberg.itch.io/kaykit-character-animations
   Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/crew.glb
 
+- KayKit Character Pack: Adventures / Warden
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/kaykit-adventurers
+  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/warden.glb
+
+- KayKit Character Pack: Skeletons / Lancer
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/kaykit-skeletons
+  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/lancer.glb
+
+- KayKit Character Pack: Skeletons / Archer
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/kaykit-skeletons
+  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/archer.glb
+
+- KayKit Character Pack: Skeletons / Herald
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/kaykit-skeletons
+  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/herald.glb
+
+- KayKit Character Pack: Skeletons / Wisp
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/kaykit-skeletons
+  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/wisp.glb
+
 - KayKit Forest Nature Pack
   Creator: Kay Lousberg
   License: CC0 1.0
