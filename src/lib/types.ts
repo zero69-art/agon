@@ -9,7 +9,7 @@ export type Quality = 'standard' | 'high' | 'ultra';
 export type CameraMotion = 'still' | 'push' | 'drift' | 'orbit' | 'parallax';
 export type SceneDimension = '2d' | '3d';
 export type SceneAssetMode = 'auto' | 'quaternius' | 'kaykit' | 'procedural';
-export type EnvironmentAssetMode = 'auto' | 'kaykit-forest' | 'kenney-nature' | 'kaykit-space' | 'procedural';
+export type EnvironmentAssetMode = 'auto' | 'kaykit-forest' | 'kenney-nature' | 'kaykit-city' | 'kaykit-dungeon' | 'kaykit-space' | 'procedural';
 export type ActionKind = 'idle' | 'walk' | 'run' | 'jump' | 'wave' | 'fight' | 'dance' | 'sit' | 'point' | 'look' | 'kneel' | 'reach' | 'talk';
 
 export interface Scene {
