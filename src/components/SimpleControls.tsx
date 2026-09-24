@@ -10,7 +10,6 @@ interface Props {
   exportError?: string | null;
   supported?: boolean;
   exporting: boolean;
-  exportError?: string | null;
 }
 
 export function SimpleControls({
@@ -109,7 +108,7 @@ export function SimpleControls({
           </div>
         )}
         {exporting ? (
-          <Btn variant="secondary" className="w-full !py-3" onClick={onCancelExport}>
+          <Btn variant="outline" className="w-full !py-3" onClick={onCancelExport}>
             Stop render
           </Btn>
         ) : (
