@@ -10,6 +10,7 @@ interface Props {
   exportError?: string | null;
   supported?: boolean;
   exporting: boolean;
+  webcodecsProgress?: number | null;
 }
 
 export function SimpleControls({
@@ -21,6 +22,7 @@ export function SimpleControls({
   exportError,
   supported = true,
   exporting,
+  webcodecsProgress = null,
 }: Props) {
   const musicChoices = MUSIC_MOODS.filter((m) => ['none', 'dreamy', 'cinematic', 'upbeat', 'ambient'].includes(m.id));
   const cameraChoices = CAMERA_MOTIONS.filter((c) => ['still', 'push', 'drift', 'orbit'].includes(c.id));
@@ -109,7 +111,7 @@ export function SimpleControls({
         )}
         {exporting ? (
           <Btn variant="outline" className="w-full !py-3" onClick={onCancelExport}>
-            Stop render
+            {webcodecsProgress !== null ? `Rendering ${Math.round(webcodecsProgress * 100)}%` : 'Stop render'}
           </Btn>
         ) : (
           <Btn variant="primary" className="w-full !py-3" onClick={onExport} disabled={!supported || !project.scenes.length}>
