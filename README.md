@@ -81,6 +81,14 @@ For 3D scenes, **Auto** uses Quaternius for human characters and Agon's procedur
 
 ## Free movie asset sources
 
-Agon now has a runtime asset registry for free/CC0 movie assets. The active runtime set includes KayKit Crew, KayKit Forest Nature, Kenney Nature and KayKit Space Base, alongside the existing Quaternius human and animation runtime. Assets are cached when available and every 3D scene keeps a procedural fallback.
+Agon now has a lazy-loaded CC0 movie asset system rather than a single character model. The runtime can select Quaternius humans, KayKit Adventurers, KayKit Skeletons, city kits, dungeon pieces, space-base pieces, vehicles and props from official public repositories. The scene parser automatically infers environments from story language such as "city", "dungeon", "forest", "mountains" and "space".
+
+Examples currently wired into the runtime:
+- Characters: Knight, Mage, Rogue, Barbarian, Hooded Rogue, Skeleton Warrior, Skeleton Mage, Skeleton Rogue, Skeleton Minion
+- City: buildings, roads, taxi and streetlights
+- Dungeon: floor, walls, doorway, barrels, chest, torches and stairs
+- Space: station module, space truck, rocks and solar panels
+
+Only scene-relevant assets are fetched. Imported assets are cached in memory and procedural characters/environments remain the fallback if a remote asset fails, so a missing asset does not block story creation or video export.
 
 The source catalog and license notes live in `src/lib/assetRegistry.ts` and `public/credits/FREE_3D_ASSETS.txt`.
