@@ -26,7 +26,8 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   const [renderReady, setRenderReady] = useState(!has3D);
   usePlayer(player);
 
-  // Keep live preview light; export uses the selected project quality separately.\n  const { w, h } = canvasSize(project.aspect, 'standard');
+  // Keep live preview light; export uses the selected project quality separately.
+  const { w, h } = canvasSize(project.aspect, 'standard');
   const total = totalDuration(project);
 
   useEffect(() => {
@@ -98,21 +99,6 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
       window.removeEventListener('agon-three-asset-loaded', markDirty);
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const preload = (window as Window & {
-      __AGON_PRELOAD_THREE_ASSETS__?: (project?: Project) => Promise<unknown>;
-    }).__AGON_PRELOAD_THREE_ASSETS__;
-    void (async () => {
-      await ensureThreeDirectorReady(project.scenes.length, w, h);
-      if (typeof preload === 'function') await preload(project);
-      if (!cancelled) dirtyRef.current = true;
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [project.scenes.length, project.aspect, project.quality, w, h]);
 
   useEffect(() => {
     const families = ['"Bricolage Grotesque"', '"Fraunces"', '"DM Mono"', '"Nunito"', '"Instrument Sans"'];
