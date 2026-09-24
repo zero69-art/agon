@@ -1,0 +1,33 @@
+AGON FREE 3D ASSET SOURCES
+
+Runtime assets
+- KayKit Character Animations / Crew
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/kaykit-character-animations
+  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/crew.glb
+
+- KayKit Forest Nature Pack
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/kaykit-forest-nature
+  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/forest.glb
+
+- Kenney Nature Kit
+  Creator: Kenney
+  License: CC0 1.0
+  Official: https://kenney.nl/assets/nature-kit
+  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/nature.glb
+
+- KayKit Space Base Bits
+  Creator: Kay Lousberg
+  License: CC0 1.0
+  Official: https://kaylousberg.itch.io/space-base-bits
+  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/spacebase.glb
+
+Additional catalog
+- Quaternius: https://quaternius.com/ — CC0 1.0
+- KayKit: https://kaylousberg.itch.io/ — CC0 assets
+- Kenney: https://kenney.nl/assets — CC0 assets
+- Poly Haven: https://polyhaven.com/ — CC0 assets
+- OpenGameArt CC0 collection: https://opengameart.org/content/3d-assets-cc0
