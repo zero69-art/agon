@@ -11,14 +11,14 @@ function projectUsesRealtime3D(project: Project): boolean {
   return project.scenes.some((scene) => scene.dimension === '3d');
 }
 
-async function preloadRealtime3DAssets(): Promise<void> {
+async function preloadRealtime3DAssets(project: Project): Promise<void> {
   if (typeof window === 'undefined') return;
   const preload = (window as Window & {
-    __AGON_PRELOAD_THREE_ASSETS__?: () => Promise<unknown>;
+    __AGON_PRELOAD_THREE_ASSETS__?: (project?: Project) => Promise<unknown>;
   }).__AGON_PRELOAD_THREE_ASSETS__;
   if (typeof preload !== 'function') return;
   try {
-    await preload();
+    await preload(project);
   } catch {
     // Keep the procedural fallback if remote CC0 assets are unavailable.
   }
@@ -150,7 +150,7 @@ export function useVideoExport(opts: {
     setExporting(true);
     setRightTab('export');
     if (!isDesktop) setMobileTab('export');
-    await preloadRealtime3DAssets();
+    await preloadRealtime3DAssets(project);
     if (cancelRef.current) {
       setExporting(false);
       return;
