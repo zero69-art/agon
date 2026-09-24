@@ -42,7 +42,7 @@ export default function App() {
     setClips,
   });
 
-  const { exporting, exportError, startExport, cancelExport, recorderRef } = videoExport;
+  const { exporting, exportError, startExport, cancelExport, recorderRef, webcodecsProgress } = videoExport;
 
   useEffect(() => {
     const id = window.setTimeout(() => saveCurrent(project), 400);
@@ -185,6 +185,8 @@ export default function App() {
             exportError={videoExport.exportError}
             supported={videoExport.supported}
             exporting={exporting}
+            webcodecsProgress={webcodecsProgress}
+            webcodecsProgress={webcodecsProgress}
           />
           </aside>
         </main>
