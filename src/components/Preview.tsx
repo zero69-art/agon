@@ -23,7 +23,9 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   const onEndedRef = useRef(onEnded);
   const lastSpoken = useRef<string | null>(null);
   const has3D = project.scenes.some((scene) => scene.dimension === '3d');
-  const [renderReady, setRenderReady] = useState(!has3D);
+  const sceneKey = project.aspect + ':' + project.scenes.map((scene) => scene.id).join('|');
+  const [readySceneKey, setReadySceneKey] = useState<string | null>(null);
+  const renderReady = !has3D || readySceneKey === sceneKey;
   usePlayer(player);
 
   // Keep live preview light; export uses the selected project quality separately.
@@ -52,14 +54,16 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
       typeof preload === 'function' ? preload(projectRef.current) : Promise.resolve(),
     ]).then(([directorResult]) => {
       if (cancelled) return;
-      setRenderReady(directorResult.status === 'fulfilled' && directorResult.value === true);
-      dirtyRef.current = true;
+      if (directorResult.status === 'fulfilled' && directorResult.value === true) {
+        setReadySceneKey(sceneKey);
+        dirtyRef.current = true;
+      }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [project.aspect, project.scenes]);
+  }, [project, sceneKey]);
 
   useEffect(() => {
     onEndedRef.current = onEnded;
