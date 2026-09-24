@@ -59,7 +59,13 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
       dirtyRef.current = true;
     };
     window.addEventListener('agon-three-assets-ready', markDirty);
-    return () => window.removeEventListener('agon-three-assets-ready', markDirty);
+    window.addEventListener('agon-three-director-ready', markDirty);
+    window.addEventListener('agon-three-asset-loaded', markDirty);
+    return () => {
+      window.removeEventListener('agon-three-assets-ready', markDirty);
+      window.removeEventListener('agon-three-director-ready', markDirty);
+      window.removeEventListener('agon-three-asset-loaded', markDirty);
+    };
   }, []);
 
   useEffect(() => {
