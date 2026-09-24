@@ -595,6 +595,7 @@ function addRuntimeEnvironment(THREE, motif, explicit) {
 }
 
 function sceneAssetNeeds(scene) {
+  if (!scene || scene.dimension !== '3d') return { runtime: [], quaternius: false };
   const runtime = [];
   const labels = Array.isArray(scene?.characters) ? scene.characters.filter(Boolean).slice(0, 2) : [];
   const actionText = String(scene?.text || '').toLowerCase();
