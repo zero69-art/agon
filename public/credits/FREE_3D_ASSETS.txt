@@ -1,63 +1,90 @@
 AGON FREE 3D ASSET SOURCES
 
-Runtime assets
-- KayKit Character Animations / Crew
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/kaykit-character-animations
-  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/crew.glb
+ACTIVE RUNTIME SOURCES
 
-- KayKit Character Pack: Adventures / Warden
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/kaykit-adventurers
-  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/warden.glb
+QUATERNIUS
+- Universal Base Characters — Quaternius — CC0 1.0
+  Official: https://quaternius.com/packs/universalbasecharacters.html
+  Runtime human model mirror:
+  https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/main/public/assets/vendor/quaternius/night-striker.glb
+- Universal Animation Library — Quaternius — CC0 1.0
+  Official: https://quaternius.com/packs/universalanimationlibrary.html
+  Runtime animation library mirror:
+  https://raw.githubusercontent.com/Seyamalam/blood-league-kickoff/main/public/assets/vendor/quaternius/universal-animation-library.glb
 
-- KayKit Character Pack: Skeletons / Lancer
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/kaykit-skeletons
-  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/lancer.glb
+KAYKIT ADVENTURERS
+Creator: Kay Lousberg
+License: CC0 1.0
+Official repository: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0
+Runtime files:
+- Knight.glb
+- Mage.glb
+- Rogue.glb
+- Barbarian.glb
+- Rogue_Hooded.glb
 
-- KayKit Character Pack: Skeletons / Archer
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/kaykit-skeletons
-  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/archer.glb
+KAYKIT SKELETONS
+Creator: Kay Lousberg
+License: CC0 1.0
+Official repository: https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Skeletons-1.0
+Runtime files:
+- Skeleton_Warrior.glb
+- Skeleton_Mage.glb
+- Skeleton_Rogue.glb
+- Skeleton_Minion.glb
 
-- KayKit Character Pack: Skeletons / Herald
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/kaykit-skeletons
-  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/herald.glb
+KAYKIT CITY BUILDER BITS
+Creator: Kay Lousberg
+License: CC0 1.0
+Official repository: https://github.com/KayKit-Game-Assets/KayKit-City-Builder-Bits-1.0
+Runtime files include:
+- building_A.gltf
+- building_B.gltf
+- building_C.gltf
+- road_straight.gltf
+- car_taxi.gltf
+- streetlight.gltf
 
-- KayKit Character Pack: Skeletons / Wisp
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/kaykit-skeletons
-  Runtime mirror: https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/main/src/assets/kaykit-characters/wisp.glb
+KAYKIT DUNGEON REMASTERED
+Creator: Kay Lousberg
+License: CC0 1.0
+Official repository: https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0
+Runtime files include:
+- floor_tile_large.gltf.glb
+- wall.gltf.glb
+- wall_doorway.glb
+- barrel_large.gltf.glb
+- chest.glb
+- torch_lit.gltf.glb
+- stairs.gltf.glb
 
-- KayKit Forest Nature Pack
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/kaykit-forest-nature
-  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/forest.glb
+KAYKIT SPACE BASE BITS
+Creator: Kay Lousberg
+License: CC0 1.0
+Official repository: https://github.com/KayKit-Game-Assets/KayKit-Space-Base-Bits-1.0
+Runtime files include:
+- basemodule_A.gltf
+- spacetruck.gltf
+- rock_A.gltf
+- solarpanel.gltf
 
-- Kenney Nature Kit
-  Creator: Kenney
-  License: CC0 1.0
-  Official: https://kenney.nl/assets/nature-kit
-  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/nature.glb
+LEGACY / FALLBACK MIRRORS
+These are retained only for existing combined environment packs that are not yet self-hosted in Agon.
+- KayKit Forest Nature:
+  https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/forest.glb
+- Kenney Nature Kit:
+  https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/nature.glb
+- KayKit Space Base:
+  https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/spacebase.glb
+- KayKit Crew:
+  https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/crew.glb
 
-- KayKit Space Base Bits
-  Creator: Kay Lousberg
-  License: CC0 1.0
-  Official: https://kaylousberg.itch.io/space-base-bits
-  Runtime mirror: https://raw.githubusercontent.com/Station-Sciences/bot-crossing/main/public/assets/spacebase.glb
-
-Additional catalog
-- Quaternius: https://quaternius.com/ — CC0 1.0
+DISCOVERY CATALOG
+- Quaternius: https://quaternius.com/ — CC0 assets
 - KayKit: https://kaylousberg.itch.io/ — CC0 assets
 - Kenney: https://kenney.nl/assets — CC0 assets
 - Poly Haven: https://polyhaven.com/ — CC0 assets
 - OpenGameArt CC0 collection: https://opengameart.org/content/3d-assets-cc0
+
+IMPLEMENTATION NOTE
+Agon lazy-loads only the assets needed by the current scene/project. Imported assets are used when available; every scene keeps a procedural fallback so a failed remote asset cannot prevent story rendering or export.
