@@ -33,11 +33,14 @@ function words(text) {
 
 let quaterniusAssetsPromise = null;
 let quaterniusAssets = null;
-let runtimeAssetsPromise = null;
+let quaterniusLoadFailed = false;
 const runtimeAssets = new Map();
+const runtimeAssetPromises = new Map();
+const runtimeAssetFailures = new Set();
 
 async function loadQuaterniusAssets() {
   if (quaterniusAssets) return quaterniusAssets;
+  if (quaterniusLoadFailed) return null;
   if (quaterniusAssetsPromise) return quaterniusAssetsPromise;
   const loader = new GLTFLoader();
   quaterniusAssetsPromise = Promise.all([
@@ -52,35 +55,66 @@ async function loadQuaterniusAssets() {
       return quaterniusAssets;
     })
     .catch((error) => {
+      quaterniusLoadFailed = true;
       quaterniusAssetsPromise = null;
-      throw error;
+      window.dispatchEvent(new CustomEvent('agon-three-asset-error', {
+        detail: { id: 'quaternius', message: error instanceof Error ? error.message : String(error) },
+      }));
+      return null;
     });
   return quaterniusAssetsPromise;
 }
 
-async function loadRuntimeAssets() {
-  if (runtimeAssets.size) return runtimeAssets;
-  if (runtimeAssetsPromise) return runtimeAssetsPromise;
+async function loadRuntimeAsset(id) {
+  if (runtimeAssets.has(id)) return runtimeAssets.get(id);
+  if (runtimeAssetPromises.has(id)) return runtimeAssetPromises.get(id);
+  if (runtimeAssetFailures.has(id)) return null;
+  const definition = RUNTIME_ASSETS[id];
+  if (!definition) return null;
   const loader = new GLTFLoader();
-  runtimeAssetsPromise = Promise.all(
-    Object.values(RUNTIME_ASSETS).map(async (definition) => {
-      try {
-        const gltf = await loader.loadAsync(definition.modelUrl);
-        runtimeAssets.set(definition.id, {
-          definition,
-          scene: gltf.scene,
-          clips: gltf.animations || [],
-        });
-      } catch {
-        // External runtime assets are optional; the procedural fallback remains active.
-      }
-    }),
-  ).then(() => runtimeAssets);
-  return runtimeAssetsPromise;
+  const promise = loader.loadAsync(definition.modelUrl)
+    .then((gltf) => {
+      const entry = {
+        definition,
+        scene: gltf.scene,
+        clips: gltf.animations || [],
+      };
+      runtimeAssets.set(id, entry);
+      window.dispatchEvent(new CustomEvent('agon-three-asset-loaded', { detail: { id } }));
+      return entry;
+    })
+    .catch((error) => {
+      runtimeAssetFailures.add(id);
+      window.dispatchEvent(new CustomEvent('agon-three-asset-error', {
+        detail: { id, message: error instanceof Error ? error.message : String(error) },
+      }));
+      return null;
+    })
+    .finally(() => runtimeAssetPromises.delete(id));
+  runtimeAssetPromises.set(id, promise);
+  return promise;
 }
 
-async function loadAll3DAssets() {
-  await Promise.allSettled([loadQuaterniusAssets(), loadRuntimeAssets()]);
+async function loadRuntimeAssets(ids = []) {
+  const wanted = [...new Set(ids)].filter((id) => RUNTIME_ASSETS[id]);
+  await Promise.all(wanted.map(loadRuntimeAsset));
+  return runtimeAssets;
+}
+
+async function loadAll3DAssets(project) {
+  const scenes = Array.isArray(project?.scenes) ? project.scenes : [];
+  const runtimeIds = new Set();
+  let needsQuaternius = false;
+  scenes.forEach((scene) => {
+    const needs = sceneAssetNeeds(scene);
+    needs.runtime.forEach((id) => runtimeIds.add(id));
+    needs.quaternius = needs.quaternius || false;
+    needsQuaternius = needsQuaternius || needs.quaternius;
+  });
+  await Promise.allSettled([
+    needsQuaternius ? loadQuaterniusAssets() : Promise.resolve(null),
+    loadRuntimeAssets([...runtimeIds]),
+  ]);
   return { quaternius: quaterniusAssets, runtime: runtimeAssets };
 }
 
@@ -325,18 +359,27 @@ function findBone(root, names) {
   return match;
 }
 
+function isKayKitCharacterLabel(label) {
+  return /\b(knight|mage|wizard|ranger|rogue|barbarian|druid|engineer|adventurer|hero|pirate|thief|archer|hunter|scout|skeleton|wisp|ghost|spirit|undead|minion|warrior|fighter|soldier|guard)\b/i.test(String(label || ''));
+}
+
 function selectKayKitRuntimeId(label, index) {
   const text = String(label || '').toLowerCase();
   const matches = [
-    ['kaykit-archer', /\b(archer|ranger|hunter|scout)\b/],
-    ['kaykit-herald', /\b(wizard|mage|sorcerer|necromancer|priest|herald)\b/],
-    ['kaykit-lancer', /\b(knight|lancer|warrior|soldier|guard|fighter)\b/],
-    ['kaykit-wisp', /\b(wisp|ghost|spirit|skeleton|undead|minion)\b/],
-    ['kaykit-warden', /\b(hero|rogue|warden|thief|adventurer|pirate)\b/],
+    ['kaykit-skeleton-minion', /\b(minion|wisp|ghost|spirit)\b/],
+    ['kaykit-skeleton-mage', /\b(skeleton.*mage|undead.*mage)\b/],
+    ['kaykit-skeleton-rogue', /\b(skeleton.*rogue|undead.*rogue)\b/],
+    ['kaykit-skeleton-warrior', /\b(skeleton|undead)\b/],
+    ['kaykit-mage', /\b(wizard|mage|sorcerer|necromancer|priest|herald)\b/],
+    ['kaykit-barbarian', /\b(barbarian)\b/],
+    ['kaykit-knight', /\b(knight|lancer|warrior|soldier|guard|fighter)\b/],
+    ['kaykit-rogue', /\b(rogue|ranger|archer|hunter|scout)\b/],
+    ['kaykit-hooded-rogue', /\b(thief|pirate)\b/],
+    ['kaykit-crew', /\b(engineer|worker|adventurer|hero)\b/],
   ];
   const hit = matches.find(([, re]) => re.test(text));
   if (hit) return hit[0];
-  const fallback = ['kaykit-crew', 'kaykit-warden', 'kaykit-lancer', 'kaykit-archer', 'kaykit-herald', 'kaykit-wisp'];
+  const fallback = ['kaykit-knight', 'kaykit-mage', 'kaykit-rogue', 'kaykit-barbarian', 'kaykit-hooded-rogue'];
   return fallback[index % fallback.length];
 }
 
@@ -463,19 +506,19 @@ function animateQuaterniusActor(actor, actorIndex, action, globalTime, speakingI
 }
 
 const KAYKIT_ACTION_CANDIDATES = {
-  idle: ['Idle', 'Idle_Loop', 'idle'],
-  walk: ['Walking', 'Walk', 'Walk_Loop', 'Jog'],
-  run: ['Running', 'Run', 'Sprint', 'Jog'],
-  jump: ['Jump', 'Jump_Start'],
-  wave: ['Waving', 'Wave', 'Emote_Wave'],
-  fight: ['Punch', 'Attack', 'Sword', 'Melee'],
+  idle: ['Idle', 'Idle_Loop'],
+  walk: ['Walking_A', 'Walking_B', 'Walking_C', 'Walking', 'Walk', 'Walk_Loop'],
+  run: ['Running_A', 'Running_B', 'Running', 'Run', 'Sprint', 'Jog'],
+  jump: ['Jump_Start', 'Jump_Loop', 'Jump_End', 'Jump'],
+  wave: ['Waving', 'Wave', 'Victory', 'Emote_Wave'],
+  fight: ['1H_Melee_Attack_01', '1H_Melee_Attack', '2H_Melee_Attack_01', 'Punch', 'Attack', 'Sword', 'Melee'],
   dance: ['Dance', 'Dance_Loop'],
   sit: ['Sitting', 'Sit'],
-  point: ['Point', 'Pointing'],
+  point: ['Point', 'Pointing', 'Interact'],
   look: ['Look', 'Idle'],
-  kneel: ['Kneel', 'Kneeling'],
-  reach: ['Interact', 'Reach', 'Work'],
-  talk: ['Talk', 'Idle_Talking', 'Idle'],
+  kneel: ['Kneel', 'Kneeling', 'Idle'],
+  reach: ['Interact', 'Reach', 'Work', 'Pickup'],
+  talk: ['Interact', 'Idle_Talking', 'Talk', 'Idle'],
 };
 
 function normalizeExternalModel(THREE, source, targetSize = 14) {
@@ -500,26 +543,84 @@ function normalizeExternalModel(THREE, source, targetSize = 14) {
   return model;
 }
 
-function runtimeEnvironmentId(motif, explicit) {
-  if (explicit && explicit !== 'auto' && explicit !== 'procedural') {
-    if (explicit === 'kaykit-space') return 'kaykit-space-base';
-    return explicit;
-  }
-  if (explicit === 'procedural') return '';
-  if (motif === 'forest') return 'kaykit-forest';
-  if (motif === 'space') return 'kaykit-space-base';
-  if (motif === 'mountains') return 'kenney-nature';
-  return '';
+function runtimeEnvironmentPlan(motif, explicit) {
+  const selected = explicit && explicit !== 'auto' ? explicit : '';
+  const mode = selected || (motif === 'forest' ? 'kaykit-forest' : motif === 'mountains' ? 'kenney-nature' : motif === 'space' ? 'kaykit-space' : '');
+  if (!mode || mode === 'procedural') return [];
+  if (mode === 'kaykit-forest') return [{ id: 'kaykit-forest', position: [0, 0, -5], rotation: [0, 0, 0] }];
+  if (mode === 'kenney-nature') return [{ id: 'kenney-nature', position: [0, 0, -5], rotation: [0, 0, 0] }];
+  if (mode === 'kaykit-city') return [
+    { id: 'kaykit-city-road', position: [0, 0, -5], rotation: [0, 0, 0] },
+    { id: 'kaykit-city-building-a', position: [-5.2, 0, -6], rotation: [0, 0.12, 0] },
+    { id: 'kaykit-city-building-b', position: [5.1, 0, -6.5], rotation: [0, -0.15, 0] },
+    { id: 'kaykit-city-building-c', position: [4.2, 0, -1.7], rotation: [0, Math.PI, 0] },
+    { id: 'kaykit-city-taxi', position: [-1.2, 0.12, -2.7], rotation: [0, Math.PI * 0.5, 0] },
+    { id: 'kaykit-city-streetlight', position: [3.1, 0, -2.5], rotation: [0, 0, 0] },
+  ];
+  if (mode === 'kaykit-dungeon') return [
+    { id: 'kaykit-dungeon-floor', position: [0, 0, -5], rotation: [0, 0, 0] },
+    { id: 'kaykit-dungeon-wall', position: [-5.4, 0, -5], rotation: [0, 0, 0] },
+    { id: 'kaykit-dungeon-wall', position: [5.4, 0, -5], rotation: [0, Math.PI, 0] },
+    { id: 'kaykit-dungeon-doorway', position: [0, 0, -8], rotation: [0, 0, 0] },
+    { id: 'kaykit-dungeon-barrel', position: [-3.2, 0, -2.2], rotation: [0, 0.3, 0] },
+    { id: 'kaykit-dungeon-chest', position: [2.8, 0, -2.1], rotation: [0, -0.4, 0] },
+    { id: 'kaykit-dungeon-torch', position: [-3.7, 1.4, -5], rotation: [0, 0, 0] },
+    { id: 'kaykit-dungeon-stairs', position: [4.0, 0, -6.4], rotation: [0, 0, 0] },
+  ];
+  if (mode === 'kaykit-space') return [
+    { id: 'kaykit-space-module', position: [0, 0, -6], rotation: [0, 0, 0] },
+    { id: 'kaykit-space-truck', position: [-3.1, 0, -2.6], rotation: [0, 0.35, 0] },
+    { id: 'kaykit-space-rock', position: [4.0, 0.1, -4.6], rotation: [0.1, 0.3, 0.2] },
+    { id: 'kaykit-space-solar', position: [-4.2, 0, -5], rotation: [0, -0.25, 0] },
+  ];
+  return [];
 }
 
 function addRuntimeEnvironment(THREE, motif, explicit) {
-  const id = runtimeEnvironmentId(motif, explicit);
-  const entry = id ? runtimeAssets.get(id) : null;
-  if (!entry?.scene) return null;
-  const model = normalizeExternalModel(THREE, entry.scene, 16);
-  model.position.z = -5;
-  model.userData.assetId = id;
-  return model;
+  const group = new THREE.Group();
+  const plan = runtimeEnvironmentPlan(motif, explicit);
+  let added = 0;
+  plan.forEach(({ id, position, rotation }) => {
+    const entry = runtimeAssets.get(id);
+    if (!entry?.scene) return;
+    const targetSize = entry.definition.targetSize || 12;
+    const model = normalizeExternalModel(THREE, entry.scene, targetSize);
+    model.position.set(...position);
+    model.rotation.set(...rotation);
+    model.userData.assetId = id;
+    group.add(model);
+    added += 1;
+  });
+  return added ? group : null;
+}
+
+function sceneAssetNeeds(scene) {
+  const runtime = [];
+  const labels = Array.isArray(scene?.characters) ? scene.characters.filter(Boolean).slice(0, 2) : [];
+  const actionText = String(scene?.text || '').toLowerCase();
+  const requestedMode = scene?.asset || 'auto';
+  const characterKinds = labels.map((label, index) => {
+    const humanoid = isKayKitCharacterLabel(label);
+    const species = speciesFromCharacter(label, 'human');
+    const useKay = requestedMode === 'kaykit' ? humanoid || species === 'human' : requestedMode === 'auto' && humanoid;
+    return useKay ? selectKayKitRuntimeId(label, index) : '';
+  });
+  characterKinds.filter(Boolean).forEach((id) => runtime.push(id));
+  const envPlan = runtimeEnvironmentPlan(scene?.motif || 'none', scene?.environmentAsset || 'auto');
+  envPlan.forEach((item) => runtime.push(item.id));
+  const inferredHumans = !labels.length && /\b(human|person|people|man|woman|boy|girl|hero|villager|soldier|guard|knight|wizard|worker|captain|pirate|mage|ranger|rogue|barbarian|druid|engineer|adventurer)\b/i.test(actionText);
+  const quaternius = requestedMode === 'quaternius' || (requestedMode === 'auto' && (inferredHumans || (!labels.length && speciesFromCharacter(actionText, 'human') === 'human')));
+  return { runtime: [...new Set(runtime)], quaternius };
+}
+
+async function preloadSceneAssets(scene) {
+  const needs = sceneAssetNeeds(scene);
+  const ids = needs.runtime.filter((id) => !runtimeAssets.has(id) && !runtimeAssetFailures.has(id));
+  const tasks = [];
+  if (needs.quaternius && !quaterniusAssets && !quaterniusLoadFailed) tasks.push(loadQuaterniusAssets());
+  if (ids.length) tasks.push(loadRuntimeAssets(ids));
+  if (tasks.length) await Promise.allSettled(tasks);
+  return needs;
 }
 
 function addEnvironment(THREE, scene, motif, paletteIndex, explicitEnvironment) {
@@ -649,12 +750,7 @@ export async function createThreeDirector(host, sceneCount = 1) {
   let lastH = 0;
   let outputSize = null;
 
-  void loadAll3DAssets().then(() => {
-    currentSignature = '';
-    window.dispatchEvent(new Event('agon-three-assets-ready'));
-  }).catch(() => {
-    window.dispatchEvent(new Event('agon-three-assets-error'));
-  });
+  window.__AGON_PRELOAD_THREE_ASSETS__ = loadAll3DAssets;
 
   function resize() {
     const w = Math.max(320, outputSize?.w ?? host.clientWidth);
@@ -719,8 +815,10 @@ export async function createThreeDirector(host, sceneCount = 1) {
     const assetMode = currentScene?.asset || 'auto';
     const requestedLabels = [requested[0], requested[1]];
     const makeSceneActor = (species, index, label) => {
-      const useKayKit = assetMode === 'kaykit' ||
-        (assetMode === 'auto' && /\b(knight|mage|wizard|ranger|rogue|barbarian|druid|engineer|adventurer|hero|pirate|thief|archer|hunter|scout|skeleton|wisp|ghost|spirit|undead|minion|warrior|fighter|soldier|guard)\b/i.test(String(label || '')));
+      const humanoid = isKayKitCharacterLabel(label);
+      const useKayKit = assetMode === 'kaykit'
+        ? humanoid || species === 'human'
+        : assetMode === 'auto' && humanoid;
       const useQuaternius = assetMode !== 'procedural' && !useKayKit &&
         (assetMode === 'quaternius' || (assetMode === 'auto' && (species === 'human' || isQuaterniusCharacterLabel(label))));
       if (useKayKit) {
@@ -844,6 +942,17 @@ export async function createThreeDirector(host, sceneCount = 1) {
 
   function render(project, currentScene, local, globalTime) {
     resize();
+    if (currentScene) {
+      const needs = sceneAssetNeeds(currentScene);
+      const pendingRuntime = needs.runtime.some((id) => !runtimeAssets.has(id) && !runtimeAssetFailures.has(id));
+      const pendingQuaternius = needs.quaternius && !quaterniusAssets && !quaterniusLoadFailed;
+      if (pendingRuntime || pendingQuaternius) {
+        void preloadSceneAssets(currentScene).then(() => {
+          currentSignature = '';
+          window.dispatchEvent(new Event('agon-three-assets-ready'));
+        });
+      }
+    }
     rebuild(project, currentScene);
 
     const action = currentScene?.action || inferAction(currentScene?.text || '');
