@@ -42,8 +42,6 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
     if (!needs3D) return;
 
     let cancelled = false;
-    setRenderReady(false);
-
     const { w: outputWidth, h: outputHeight } = canvasSize(project.aspect, 'standard');
     const preload = (window as Window & {
       __AGON_PRELOAD_THREE_ASSETS__?: (nextProject?: Project) => Promise<unknown>;
@@ -63,7 +61,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
     return () => {
       cancelled = true;
     };
-  }, [project, sceneKey]);
+  }, [project.aspect, project.scenes, sceneKey]);
 
   useEffect(() => {
     onEndedRef.current = onEnded;
