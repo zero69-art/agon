@@ -37,10 +37,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
 
   useEffect(() => {
     const needs3D = project.scenes.some((scene) => scene.dimension === '3d');
-    if (!needs3D) {
-      setRenderReady(true);
-      return;
-    }
+    if (!needs3D) return;
 
     let cancelled = false;
     setRenderReady(false);
@@ -52,7 +49,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
 
     void Promise.allSettled([
       ensureThreeDirectorReady(project.scenes.length, outputWidth, outputHeight),
-      typeof preload === 'function' ? preload(project) : Promise.resolve(),
+      typeof preload === 'function' ? preload(projectRef.current) : Promise.resolve(),
     ]).then(([directorResult]) => {
       if (cancelled) return;
       setRenderReady(directorResult.status === 'fulfilled' && directorResult.value === true);
