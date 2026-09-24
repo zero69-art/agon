@@ -7,7 +7,7 @@ import { SimpleControls } from './components/SimpleControls';
 import { Player, useMediaQuery } from './lib/player';
 import { music } from './lib/music';
 import { useVideoExport } from './lib/useVideoExport';
-import { blankProject, buildScenes, createProject, makeScene, retimeScenes } from './lib/sceneBuilder';
+import { blankProject, buildScenes, createProject, retimeScenes } from './lib/sceneBuilder';
 import { loadCurrent, saveCurrent } from './lib/storage';
 import { totalDuration } from './lib/timeline';
 import type { ExportedClip, Project } from './lib/types';
@@ -20,7 +20,7 @@ export default function App() {
   const [project, setProject] = useState<Project>(() => loadCurrent() ?? createProject());
   const [builtScript, setBuiltScript] = useState(() => project.script);
   const [selectedId, setSelectedId] = useState<string | null>(() => project.scenes[0]?.id ?? null);
-  const [clips, setClips] = useState<ExportedClip[]>([]);
+  const [, setClips] = useState<ExportedClip[]>([]);
   const [playing, setPlaying] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
