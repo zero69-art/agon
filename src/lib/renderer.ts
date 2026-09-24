@@ -171,7 +171,7 @@ export function renderFrame(ctx: Ctx, project: Project, time: number, w: number,
   const total = tl[tl.length - 1].start + tl[tl.length - 1].duration;
   const t = Math.min(Math.max(time, 0), total - 0.0001);
   const hit = itemAt(tl, t)!;
-  const { item, local } = hit;
+  const { item, i, local } = hit;
   const trans = project.transition;
 
   if (item.kind === 'scene' && item.scene) {
