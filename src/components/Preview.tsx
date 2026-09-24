@@ -55,6 +55,14 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   );
 
   useEffect(() => {
+    const markDirty = () => {
+      dirtyRef.current = true;
+    };
+    window.addEventListener('agon-three-assets-ready', markDirty);
+    return () => window.removeEventListener('agon-three-assets-ready', markDirty);
+  }, []);
+
+  useEffect(() => {
     const families = ['"Bricolage Grotesque"', '"Fraunces"', '"DM Mono"', '"Nunito"', '"Instrument Sans"'];
     Promise.all(families.map((f) => document.fonts.load(`700 40px ${f}`).catch(() => undefined))).then(() => {
       dirtyRef.current = true;
