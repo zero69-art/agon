@@ -158,7 +158,7 @@ export default function App() {
       <div className="flex h-screen flex-col overflow-hidden text-cream">
         <Header {...headerProps} />
         <main className="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_280px]">
-          <aside className={\`min-h-0 overflow-y-auto border-r border-line bg-surface/35 \${lockClass}\`}>
+          <aside className={`min-h-0 overflow-y-auto border-r border-line bg-surface/35 ${lockClass}`}>
             <ScriptPanel
               project={project}
               dirty={dirty}
@@ -175,7 +175,7 @@ export default function App() {
             </div>
           </section>
 
-          <aside className={\`min-h-0 overflow-y-auto border-l border-line bg-surface/35 \${lockClass}\`}>
+          <aside className={`min-h-0 overflow-y-auto border-l border-line bg-surface/35 ${lockClass}`}>
             <SimpleControls project={project} onChange={update} onWpm={setWpm} onExport={exportVideo} exporting={exporting} />
           </aside>
         </main>
@@ -201,7 +201,7 @@ export default function App() {
 
         <Timeline project={project} player={player} selectedId={selectedId} onSelect={setSelectedId} disabled={exporting} />
 
-        <section className={\`rounded-2xl border border-line bg-surface/55 \${lockClass}\`}>
+        <section className={`rounded-2xl border border-line bg-surface/55 ${lockClass}`}>
           <SimpleControls project={project} onChange={update} onWpm={setWpm} onExport={exportVideo} exporting={exporting} />
         </section>
       </main>
