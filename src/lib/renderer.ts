@@ -185,7 +185,7 @@ export function renderFrame(ctx: Ctx, project: Project, time: number, w: number,
       && last3DSceneId === previous.scene.id
       && last3DProjectId === project.id;
 
-    if (canUseCachedDissolve) {
+    if (canUseCachedDissolve && last3DFrame) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
