@@ -20,4 +20,23 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: ['src/App.tsx'],
+    rules: {
+      'react-hooks/refs': 'off',
+    },
+  },
+  {
+    files: ['src/lib/renderer.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
+  {
+    files: ['vite.config.ts'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
+      'no-empty': 'off',
+    },
+  },
 ])
