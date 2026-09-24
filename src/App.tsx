@@ -21,7 +21,6 @@ export default function App() {
   const [builtScript, setBuiltScript] = useState(() => project.script);
   const [selectedId, setSelectedId] = useState<string | null>(() => project.scenes[0]?.id ?? null);
   const [clips, setClips] = useState<ExportedClip[]>([]);
-  const [musicPreview] = useState(false);
   const [playing, setPlaying] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -53,9 +52,9 @@ export default function App() {
   useEffect(() => player.subscribe(() => setPlaying(player.playing)), [player]);
 
   useEffect(() => {
-    if (playing || musicPreview) music.start(project.music);
+    if (playing) music.start(project.music);
     else music.stop();
-  }, [playing, musicPreview, project.music]);
+  }, [playing, project.music]);
 
   useEffect(() => {
     music.setVolume(project.musicVolume);
@@ -118,15 +117,6 @@ export default function App() {
     player.seek(0);
   };
 
-  const addAfter = (id: string) => {
-    const idx = project.scenes.findIndex((s) => s.id === id);
-    const s = makeScene('A new scene. Write something here.', idx + 1, project.wpm, project.basePalette);
-    const scenes = [...project.scenes];
-    scenes.splice(idx + 1, 0, s);
-    update({ scenes });
-    setSelectedId(s.id);
-  };
-
   const onEnded = useCallback(() => {
     const rec = recorderRef.current;
     if (rec && rec.state !== 'inactive') {
@@ -147,10 +137,7 @@ export default function App() {
     canvasRef.current = c;
   }, []);
 
-  const selectedScene = project.scenes.find((s) => s.id === selectedId) ?? null;
   const dirty = project.script.trim() !== builtScript.trim();
-  void selectedScene;
-  void addAfter;
 
   const exportVideo = () => {
     void startExport();
