@@ -47,7 +47,7 @@ export function useVideoExport(opts: {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const cancelRef = useRef(false);
   const exportAbortRef = useRef<AbortController | null>(null);
-  const mime = useMemo(pickMime, []);
+  const mime = useMemo(() => pickMime(), []);
   const preferWebCodecs = useMemo(() => canUseWebCodecsExport() && !projectUsesRealtime3D(project), [project]);
   const mediaRecorderSupported =
     typeof HTMLCanvasElement !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype && mime !== '';
