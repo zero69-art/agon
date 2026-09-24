@@ -134,10 +134,22 @@ function normalizeAsset(value: string): SceneAssetMode | undefined {
   return undefined;
 }
 
+function inferEnvironment(text: string): EnvironmentAssetMode | undefined {
+  const t = text.toLowerCase();
+  if (/\b(dungeon|crypt|castle|fortress|ruins|tavern|catacomb|underground|keep)\b/.test(t)) return 'kaykit-dungeon';
+  if (/\b(city|cities|street|downtown|traffic|subway|rooftop|building|buildings|town|police|taxi)\b/.test(t)) return 'kaykit-city';
+  if (/\b(space|station|spaceship|spacecraft|rocket|orbit|galaxy|planet|moon|cosmos)\b/.test(t)) return 'kaykit-space';
+  if (/\b(forest|woods|jungle|grove|garden|tree|trees)\b/.test(t)) return 'kaykit-forest';
+  if (/\b(mountain|mountains|hill|hills|cliff|cliffs|peak|valley)\b/.test(t)) return 'kenney-nature';
+  return undefined;
+}
+
 function normalizeEnvironment(value: string): EnvironmentAssetMode | undefined {
   const v = value.trim().toLowerCase().replace(/_/g, '-').replace(/s+/g, '-');
   if (v === 'kaykit-forest' || v === 'forest') return 'kaykit-forest';
   if (v === 'kenney-nature' || v === 'nature' || v === 'mountains') return 'kenney-nature';
+  if (v === 'kaykit-city' || v === 'city' || v === 'town' || v === 'downtown') return 'kaykit-city';
+  if (v === 'kaykit-dungeon' || v === 'dungeon' || v === 'castle' || v === 'crypt' || v === 'ruins') return 'kaykit-dungeon';
   if (v === 'kaykit-space' || v === 'space' || v === 'sci-fi' || v === 'station') return 'kaykit-space';
   if (v === 'procedural') return 'procedural';
   if (v === 'auto') return 'auto';
@@ -168,7 +180,7 @@ export function makeScene(text: string, index: number, wpm: number, basePalette:
   const characters = inferCharacters(text);
   const emotion = directive(text, 'EMOTION');
   const asset = normalizeAsset(directive(text, 'ASSET')) ?? 'auto';
-  const environmentAsset = normalizeEnvironment(directive(text, 'ENVIRONMENT')) ?? 'auto';
+  const environmentAsset = normalizeEnvironment(directive(text, 'ENVIRONMENT')) ?? inferEnvironment(text) ?? 'auto';
   const cameraCue = directive(text, 'CAMERA').toLowerCase().trim();
   const camera = (CAMERAS.includes(cameraCue as CameraMotion) ? cameraCue : CAMERAS[index % CAMERAS.length]) as CameraMotion;
   const cleanText = cleanDirectorCues(text);
