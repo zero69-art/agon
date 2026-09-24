@@ -33,6 +33,22 @@ const backOut = (x: number) => {
 };
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 
+function draw3DTransition(ctx: Ctx, scene: Scene, local: number, w: number, h: number): void {
+  const fadeDuration = Math.min(0.42, Math.max(0.18, scene.duration * 0.12));
+  let alpha = 0;
+  if (local < fadeDuration) {
+    alpha = 1 - easeOut(clamp01(local / fadeDuration));
+  } else if (local > scene.duration - fadeDuration) {
+    alpha = easeInOut(clamp01((local - (scene.duration - fadeDuration)) / fadeDuration));
+  }
+  if (alpha <= 0.001) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#050608';
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+
 type Ctx = CanvasRenderingContext2D;
 
 type ThreeDirectorBridge = {
@@ -96,13 +112,24 @@ function renderThreeToCanvas(
   if (scene.dimension !== '3d') return false;
   ensureThreeDirector(sceneCount, w, h);
   if (!threeDirector) return false;
-  threeDirector.setOutputSize?.({ w, h });
-  threeDirector.render(project, scene, local, globalTime);
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = 1;
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.drawImage(threeDirector.canvas, 0, 0, w, h);
-  return true;
+  try {
+    threeDirector.setOutputSize?.({ w, h });
+    threeDirector.render(project, scene, local, globalTime);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(threeDirector.canvas, 0, 0, w, h);
+    return true;
+  } catch {
+    try {
+      threeDirector.dispose();
+    } catch {
+      // Ignore renderer cleanup failures and fall back to the deterministic 2D frame.
+    }
+    threeDirector = null;
+    threeDirectorPromise = null;
+    return false;
+  }
 }
 
 let off: FrameCanvas | null = null;
@@ -131,8 +158,11 @@ export function renderFrame(ctx: Ctx, project: Project, time: number, w: number,
   const { item, i, local } = hit;
   const trans = project.transition;
 
-  if (item.kind === 'scene' && item.scene && (trans === 'cut' || i === 0 || local >= TRANSITION)) {
-    if (renderThreeToCanvas(ctx, project, item.scene, local, t, w, h, project.scenes.length)) return;
+  if (item.kind === 'scene' && item.scene) {
+    if (renderThreeToCanvas(ctx, project, item.scene, local, t, w, h, project.scenes.length)) {
+      if (trans === 'fade') draw3DTransition(ctx, item.scene, local, w, h);
+      return;
+    }
   }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
