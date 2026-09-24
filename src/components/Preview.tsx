@@ -26,7 +26,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
   const [renderReady, setRenderReady] = useState(!has3D);
   usePlayer(player);
 
-  const { w, h } = canvasSize(project.aspect, project.quality);
+  // Keep live preview light; export uses the selected project quality separately.\n  const { w, h } = canvasSize(project.aspect, 'standard');
   const total = totalDuration(project);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
     let cancelled = false;
     setRenderReady(false);
 
-    const { w: outputWidth, h: outputHeight } = canvasSize(project.aspect, project.quality);
+    const { w: outputWidth, h: outputHeight } = canvasSize(project.aspect, 'standard');
     const preload = (window as Window & {
       __AGON_PRELOAD_THREE_ASSETS__?: (nextProject?: Project) => Promise<unknown>;
     }).__AGON_PRELOAD_THREE_ASSETS__;
@@ -61,7 +61,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
     return () => {
       cancelled = true;
     };
-  }, [project.aspect, project.quality, project.scenes]);
+  }, [project.aspect, project.scenes]);
 
   useEffect(() => {
     onEndedRef.current = onEnded;
@@ -194,7 +194,7 @@ export function Preview({ project, player, onCanvas, onEnded, exporting }: Props
           </div>
         )}
         <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/50 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-cream/70 backdrop-blur">
-          {w}×{h}
+          preview · {w}×{h}
         </div>
       </div>
 
