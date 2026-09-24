@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { isQuaterniusCharacterLabel, QUATERNIUS_ASSETS, QUATERNIUS_CLIP_CANDIDATES } from './quaternius';
+import { RUNTIME_ASSETS } from './assetRegistry';
 
 const paletteSets = [
   ['#101726', '#64d8ff', '#ff8a65', '#ece7d5'],
@@ -32,6 +33,8 @@ function words(text) {
 
 let quaterniusAssetsPromise = null;
 let quaterniusAssets = null;
+let runtimeAssetsPromise = null;
+const runtimeAssets = new Map();
 
 async function loadQuaterniusAssets() {
   if (quaterniusAssets) return quaterniusAssets;
@@ -53,6 +56,32 @@ async function loadQuaterniusAssets() {
       throw error;
     });
   return quaterniusAssetsPromise;
+}
+
+async function loadRuntimeAssets() {
+  if (runtimeAssets.size) return runtimeAssets;
+  if (runtimeAssetsPromise) return runtimeAssetsPromise;
+  const loader = new GLTFLoader();
+  runtimeAssetsPromise = Promise.all(
+    Object.values(RUNTIME_ASSETS).map(async (definition) => {
+      try {
+        const gltf = await loader.loadAsync(definition.modelUrl);
+        runtimeAssets.set(definition.id, {
+          definition,
+          scene: gltf.scene,
+          clips: gltf.animations || [],
+        });
+      } catch {
+        // External runtime assets are optional; the procedural fallback remains active.
+      }
+    }),
+  ).then(() => runtimeAssets);
+  return runtimeAssetsPromise;
+}
+
+async function loadAll3DAssets() {
+  await Promise.allSettled([loadQuaterniusAssets(), loadRuntimeAssets()]);
+  return { quaternius: quaterniusAssets, runtime: runtimeAssets };
 }
 
 function inferSpecies(text, fallback) {
@@ -296,6 +325,62 @@ function findBone(root, names) {
   return match;
 }
 
+function makeKayKitActor(index) {
+  const entry = runtimeAssets.get('kaykit-crew');
+  if (!entry?.scene) return null;
+  const root = new THREE.Group();
+  root.name = 'kaykit-crew-' + index;
+  const model = normalizeExternalModel(THREE, entry.scene, 3);
+  root.add(model);
+  const mixer = new THREE.AnimationMixer(model);
+  root.userData = {
+    kaykit: true,
+    model,
+    clips: entry.clips || [],
+    mixer,
+    activeAction: null,
+    activeClip: '',
+    phase: index * 0.72,
+    headBone: findBone(model, ['head', 'neck']),
+  };
+  return root;
+}
+
+function pickKayKitClip(clips, action) {
+  const list = clips || [];
+  const candidates = KAYKIT_ACTION_CANDIDATES[action] || KAYKIT_ACTION_CANDIDATES.idle;
+  const normalize = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const names = candidates.map(normalize);
+  return list.find((clip) => {
+    const n = normalize(clip.name);
+    return names.some((candidate) => n === candidate || n.includes(candidate) || candidate.includes(n));
+  }) || list[0] || null;
+}
+
+function animateKayKitActor(actor, actorIndex, action, globalTime, speakingIndex, emotion) {
+  const u = actor.userData;
+  const clip = pickKayKitClip(u.clips, action);
+  if (clip) {
+    if (u.activeClip !== clip.name) {
+      if (u.activeAction) u.activeAction.stop();
+      const next = u.mixer.clipAction(clip);
+      next.reset();
+      next.setLoop(THREE.LoopRepeat, Infinity);
+      next.play();
+      u.activeAction = next;
+      u.activeClip = clip.name;
+    }
+    const duration = Math.max(0.001, clip.duration);
+    u.mixer.setTime(((globalTime + u.phase) % duration + duration) % duration);
+  }
+  const speaking = speakingIndex === actorIndex;
+  if (u.headBone) {
+    u.headBone.rotation.y = (speaking ? 0.14 : actorIndex === 0 ? -0.05 : 0.05) + Math.sin(globalTime * 1.1 + u.phase) * 0.025;
+    u.headBone.rotation.x = emotion === 'surprised' ? -0.04 : Math.sin(globalTime * 0.7 + u.phase) * 0.015;
+  }
+  actor.rotation.y = (actorIndex === 0 ? 0.12 : -0.15) + Math.sin(globalTime * 0.25 + u.phase) * 0.018;
+}
+
 function makeQuaterniusActor(index) {
   if (!quaterniusAssets?.hero) return null;
   const root = new THREE.Group();
@@ -355,7 +440,66 @@ function animateQuaterniusActor(actor, actorIndex, action, globalTime, speakingI
   actor.rotation.y = (actorIndex === 0 ? 0.12 : -0.15) + Math.sin(globalTime * 0.25 + u.phase) * 0.018;
 }
 
-function addEnvironment(THREE, scene, motif, paletteIndex) {
+const KAYKIT_ACTION_CANDIDATES = {
+  idle: ['Idle', 'Idle_Loop', 'idle'],
+  walk: ['Walking', 'Walk', 'Walk_Loop', 'Jog'],
+  run: ['Running', 'Run', 'Sprint', 'Jog'],
+  jump: ['Jump', 'Jump_Start'],
+  wave: ['Waving', 'Wave', 'Emote_Wave'],
+  fight: ['Punch', 'Attack', 'Sword', 'Melee'],
+  dance: ['Dance', 'Dance_Loop'],
+  sit: ['Sitting', 'Sit'],
+  point: ['Point', 'Pointing'],
+  look: ['Look', 'Idle'],
+  kneel: ['Kneel', 'Kneeling'],
+  reach: ['Interact', 'Reach', 'Work'],
+  talk: ['Talk', 'Idle_Talking', 'Idle'],
+};
+
+function normalizeExternalModel(THREE, source, targetSize = 14) {
+  const model = SkeletonUtils.clone(source);
+  const box = new THREE.Box3().setFromObject(model);
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+  const maxDimension = Math.max(size.x, size.y, size.z, 0.001);
+  const scale = targetSize / maxDimension;
+  model.scale.setScalar(scale);
+  model.position.x -= center.x * scale;
+  model.position.y -= box.min.y * scale;
+  model.position.z -= center.z * scale;
+  model.traverse((node) => {
+    if (!node.isMesh) return;
+    node.castShadow = true;
+    node.receiveShadow = true;
+  });
+  return model;
+}
+
+function runtimeEnvironmentId(motif, explicit) {
+  if (explicit && explicit !== 'auto' && explicit !== 'procedural') {
+    if (explicit === 'kaykit-space') return 'kaykit-space-base';
+    return explicit;
+  }
+  if (explicit === 'procedural') return '';
+  if (motif === 'forest') return 'kaykit-forest';
+  if (motif === 'space') return 'kaykit-space-base';
+  if (motif === 'mountains') return 'kenney-nature';
+  return '';
+}
+
+function addRuntimeEnvironment(THREE, motif, explicit) {
+  const id = runtimeEnvironmentId(motif, explicit);
+  const entry = id ? runtimeAssets.get(id) : null;
+  if (!entry?.scene) return null;
+  const model = normalizeExternalModel(THREE, entry.scene, 16);
+  model.position.z = -5;
+  model.userData.assetId = id;
+  return model;
+}
+
+function addEnvironment(THREE, scene, motif, paletteIndex, explicitEnvironment) {
   const group = new THREE.Group();
   group.name = 'environment';
 
@@ -482,14 +626,12 @@ export async function createThreeDirector(host, sceneCount = 1) {
   let lastH = 0;
   let outputSize = null;
 
-  void loadQuaterniusAssets()
-    .then(() => {
-      currentSignature = '';
-      window.dispatchEvent(new Event('agon-three-assets-ready'));
-    })
-    .catch(() => {
-      window.dispatchEvent(new Event('agon-three-assets-error'));
-    });
+  void loadAll3DAssets().then(() => {
+    currentSignature = '';
+    window.dispatchEvent(new Event('agon-three-assets-ready'));
+  }).catch(() => {
+    window.dispatchEvent(new Event('agon-three-assets-error'));
+  });
 
   function resize() {
     const w = Math.max(320, outputSize?.w ?? host.clientWidth);
@@ -521,7 +663,8 @@ export async function createThreeDirector(host, sceneCount = 1) {
   function rebuild(project, currentScene) {
     const motif = currentScene?.motif || 'none';
     const paletteIndex = currentScene?.palette || project?.basePalette || 0;
-    const signature = motif + ':' + paletteIndex + ':' + (currentScene?.asset || 'auto') + ':' + (currentScene?.id || '') + ':' + (currentScene?.text || '') + ':' + (currentScene?.action || '') + ':' + (currentScene?.emotion || '') + ':' + (currentScene?.speakingCharacter || '') + ':' + JSON.stringify(currentScene?.characters || []) + ':' + sceneCount;
+    const environmentAsset = currentScene?.environmentAsset || 'auto';
+    const signature = motif + ':' + paletteIndex + ':' + environmentAsset + ':' + (currentScene?.asset || 'auto') + ':' + (currentScene?.id || '') + ':' + (currentScene?.text || '') + ':' + (currentScene?.action || '') + ':' + (currentScene?.emotion || '') + ':' + (currentScene?.speakingCharacter || '') + ':' + JSON.stringify(currentScene?.characters || []) + ':' + sceneCount;
     if (signature === currentSignature) return;
     currentSignature = signature;
 
@@ -541,7 +684,9 @@ export async function createThreeDirector(host, sceneCount = 1) {
     });
     actors = [];
 
-    environment = addEnvironment(THREE, scene3d, motif, paletteIndex);
+    environment = addEnvironment(THREE, scene3d, motif, paletteIndex, environmentAsset);
+    const runtimeEnvironment = addRuntimeEnvironment(THREE, motif, environmentAsset);
+    if (runtimeEnvironment) environment.add(runtimeEnvironment);
     scene3d.add(environment);
 
     const baseText = currentScene?.text || project?.script || '';
@@ -550,11 +695,15 @@ export async function createThreeDirector(host, sceneCount = 1) {
     const s1 = requested[1] ? speciesFromCharacter(requested[1], 'human') : inferSpecies(baseText, 'human');
     const assetMode = currentScene?.asset || 'auto';
     const requestedLabels = [requested[0], requested[1]];
-    const useQuaternius = (species, label) =>
-      assetMode !== 'procedural' &&
-      (assetMode === 'quaternius' || species === 'human' || isQuaterniusCharacterLabel(label));
+    const useKayKit = assetMode === 'kaykit' || (assetMode === 'auto' && /\b(knight|mage|wizard|ranger|rogue|barbarian|druid|engineer|adventurer)\b/i.test(String(label || '')));
+    const useQuaternius = assetMode !== 'procedural' && !useKayKit &&
+      (assetMode === 'quaternius' || (assetMode === 'auto' && (species === 'human' || isQuaterniusCharacterLabel(label))));
     const makeSceneActor = (species, index, label) => {
-      if (useQuaternius(species, label)) {
+      if (useKayKit) {
+        const imported = makeKayKitActor(index);
+        if (imported) return imported;
+      }
+      if (useQuaternius) {
         const imported = makeQuaterniusActor(index);
         if (imported) return imported;
       }
@@ -689,7 +838,8 @@ export async function createThreeDirector(host, sceneCount = 1) {
       if (action === 'run') actor.position.x = startX + Math.sin(globalTime * 0.8 + index) * 0.65;
       else if (action === 'walk') actor.position.x = startX + Math.sin(globalTime * 0.5 + index) * 0.35;
       else actor.position.x = startX;
-      if (actor.userData.quaternius) animateQuaterniusActor(actor, index, action, globalTime, speakingIndex, emotion);
+      if (actor.userData.kaykit) animateKayKitActor(actor, index, action, globalTime, speakingIndex, emotion);
+      else if (actor.userData.quaternius) animateQuaterniusActor(actor, index, action, globalTime, speakingIndex, emotion);
       else animateActor(actor, index, action, local, globalTime, speakingIndex, emotion);
     });
 
@@ -750,6 +900,6 @@ export async function createThreeDirector(host, sceneCount = 1) {
 
 if (typeof window !== 'undefined') {
   window.__AGON_CREATE_THREE_DIRECTOR__ = createThreeDirector;
-  window.__AGON_PRELOAD_THREE_ASSETS__ = loadQuaterniusAssets;
+  window.__AGON_PRELOAD_THREE_ASSETS__ = loadAll3DAssets;
   window.dispatchEvent(new Event('agon-three-director-ready'));
 }
