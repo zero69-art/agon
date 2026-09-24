@@ -7,6 +7,23 @@ import type { ExportedClip, Project } from './types';
 import type { Player } from './player';
 import { canUseWebCodecsExport, exportWithWebCodecs } from './webcodecsExport';
 
+function projectUsesRealtime3D(project: Project): boolean {
+  return project.scenes.some((scene) => scene.dimension === '3d');
+}
+
+async function preloadRealtime3DAssets(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const preload = (window as Window & {
+    __AGON_PRELOAD_THREE_ASSETS__?: () => Promise<unknown>;
+  }).__AGON_PRELOAD_THREE_ASSETS__;
+  if (typeof preload !== 'function') return;
+  try {
+    await preload();
+  } catch {
+    // Keep the procedural fallback if remote CC0 assets are unavailable.
+  }
+}
+
 function pickMime(): string {
   if (typeof MediaRecorder === 'undefined') return '';
   const candidates = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
@@ -31,7 +48,7 @@ export function useVideoExport(opts: {
   const cancelRef = useRef(false);
   const exportAbortRef = useRef<AbortController | null>(null);
   const mime = useMemo(pickMime, []);
-  const preferWebCodecs = useMemo(() => canUseWebCodecsExport(), []);
+  const preferWebCodecs = useMemo(() => canUseWebCodecsExport() && !projectUsesRealtime3D(project), [project]);
   const mediaRecorderSupported =
     typeof HTMLCanvasElement !== 'undefined' && 'captureStream' in HTMLCanvasElement.prototype && mime !== '';
 
@@ -114,7 +131,7 @@ export function useVideoExport(opts: {
       });
   }, [project, exporting, player, isDesktop, setRightTab, setMobileTab, projectRef, setClips]);
 
-  const startExport = useCallback(() => {
+  const startExport = useCallback(async () => {
     if (!project.scenes.length || exporting) return;
     if (preferWebCodecs) {
       startWebCodecsExport();
@@ -129,6 +146,14 @@ export function useVideoExport(opts: {
       return;
     }
     setExportError(null);
+    setExporting(true);
+    setRightTab('export');
+    if (!isDesktop) setMobileTab('export');
+    await preloadRealtime3DAssets();
+    if (cancelRef.current) {
+      setExporting(false);
+      return;
+    }
     player.pause();
     player.setLoop(false);
     player.seek(0);
@@ -168,9 +193,6 @@ export function useVideoExport(opts: {
       }
     };
     recorderRef.current = rec;
-    setExporting(true);
-    setRightTab('export');
-    if (!isDesktop) setMobileTab('export');
     rec.start(500);
     window.setTimeout(() => {
       if (!cancelRef.current && !document.hidden) player.play();
